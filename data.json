@@ -1,11 +1,12 @@
 {
-  "boldParentText": true,
-  "boldGrandparentText": true,
-  "enableAutoFormatting": true,
+  "boldNonLeafText": false,
   "parentFontSizeMultiplier": 1.1,
   "grandparentFontSizeMultiplier": 1.3,
   "leafTextColor": "#CFCFD0",
   "parentTextColor": "",
   "grandparentTextColor": "",
-  "exclamationTextColor": "#D85D95"
+  "exclamationTextColor": "#D85D95",
+  "boldParentText": true,
+  "boldGrandparentText": true,
+  "enableAutoFormatting": true
 }

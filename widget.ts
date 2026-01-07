@@ -1,5 +1,5 @@
 import { WidgetType } from "@codemirror/view";
-import { BulletType } from "main";
+import { BulletType } from "editor";
 import { BetterBulletsSettings } from "settings";
 
 export class BulletWidget extends WidgetType {
@@ -14,8 +14,8 @@ export class BulletWidget extends WidgetType {
 
    toDOM(): HTMLElement {
       const span = document.createElement("span");
-      span.textContent = this.type.symbol;
-      span.style.color = this.type.color || this.settings.leafTextColor;
+      span.textContent = " " + this.type.symbol;
+      span.style = this.type.style || "";
       return span;
    }
 }
