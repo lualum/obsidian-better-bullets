@@ -1,6 +1,6 @@
 import { WidgetType } from "@codemirror/view";
-import { BulletType } from "editor";
-import { BetterBulletsSettings } from "settings";
+import { BulletType } from "./editor";
+import { BetterBulletsSettings } from "./settings";
 
 export class BulletWidget extends WidgetType {
    settings: BetterBulletsSettings;

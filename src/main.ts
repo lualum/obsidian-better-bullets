@@ -1,10 +1,10 @@
-import { bulletReplacementPlugin } from "editor";
 import { Plugin } from "obsidian";
+import { bulletReplacementPlugin } from "./editor";
 import {
    BetterBulletsSettings,
    BetterBulletsSettingTab,
    DEFAULT_SETTINGS,
-} from "settings";
+} from "./settings";
 
 export default class BetterBulletsPlugin extends Plugin {
    settings: BetterBulletsSettings;

@@ -1,5 +1,5 @@
-import BetterBulletsPlugin from "main";
 import { App, PluginSettingTab, Setting } from "obsidian";
+import BetterBulletsPlugin from "./main";
 
 export interface BetterBulletsSettings {
    boldNonLeafText: boolean;
