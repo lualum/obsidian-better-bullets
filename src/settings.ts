@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import BetterBulletsPlugin from "./main";
+import type BetterBulletsPlugin from "./main";
 
 export interface BetterBulletsSettings {
    boldNonLeafText: boolean;
@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
    useDefinitionSymbol: false,
    parentSize: 1.2,
    grandparentSize: 1.4,
-   exclamationTextColor: "#773757",
+   exclamationTextColor: "var(--text-sub-accent)",
 };
 
 export class BetterBulletsSettingTab extends PluginSettingTab {
