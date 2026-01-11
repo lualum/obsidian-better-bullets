@@ -198,39 +198,52 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
             const fullText = info.fullText;
             const trimOffset = fullText.indexOf(text);
 
-            // Set base symbol and size based on level
-            let fontSize: string | null = null;
-            switch (level) {
-               case 0:
-                  symbolChar = "-";
-                  break;
-               case 1:
-                  symbolChar = "→";
-                  fontSize = `${this.plugin.settings.parentSize}em`;
-                  styles.push(`font-size: ${fontSize}`);
-                  break;
-               default:
-                  symbolChar = "⇒";
-                  fontSize = `${this.plugin.settings.grandparentSize}em`;
-                  styles.push(`font-size: ${fontSize}`);
-                  break;
+            // Get bullet configuration from settings
+            const bulletConfig =
+               this.plugin.settings.bulletTypes[level] ||
+               this.plugin.settings.bulletTypes.last()!;
+
+            symbolChar = bulletConfig.symbol;
+            const fontSize = bulletConfig.fontSize;
+            const cssClasses = bulletConfig.cssClasses;
+
+            // Apply font size
+            if (fontSize !== 1.0) {
+               styles.push(`font-size: ${fontSize}em`);
             }
 
-            if (this.plugin.settings.boldNonLeafText && level > 0) {
-               styles.push("font-weight: bold");
+            // Apply CSS classes (convert to inline styles)
+            if (cssClasses) {
+               if (cssClasses.includes("bold")) {
+                  styles.push("font-weight: bold");
+               }
+               if (cssClasses.includes("italic")) {
+                  styles.push("font-style: italic");
+               }
+               if (cssClasses.includes("underline")) {
+                  styles.push("text-decoration: underline");
+               }
             }
 
-            // Apply font size to entire line if level > 0
-            if (fontSize && text.length > 0) {
+            // Apply font size and styles to entire line if level > 0
+            if (fontSize !== 1.0 && text.length > 0) {
                const lineStart = textIndex + trimOffset;
                const lineEnd = textIndex + trimOffset + text.length;
+
+               const lineStyles = [`font-size: ${fontSize}em`];
+               if (cssClasses.includes("bold")) {
+                  lineStyles.push("font-weight: bold");
+               }
+               if (cssClasses.includes("italic")) {
+                  lineStyles.push("font-style: italic");
+               }
+               if (cssClasses.includes("underline")) {
+                  lineStyles.push("text-decoration: underline");
+               }
+
                const fontSizeDecoration = Decoration.mark({
                   attributes: {
-                     style: `font-size: ${fontSize}; font-weight: ${
-                        this.plugin.settings.boldNonLeafText && level > 0
-                           ? "bold"
-                           : "normal"
-                     }`,
+                     style: lineStyles.join("; "),
                   },
                });
                decorations.push({

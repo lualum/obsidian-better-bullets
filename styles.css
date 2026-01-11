@@ -1,0 +1,5 @@
+.setting-group-no-border .setting-item {
+   border-top: none;
+   padding-top: 4px;
+   padding-bottom: 4px;
+}
