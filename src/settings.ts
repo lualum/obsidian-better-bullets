@@ -29,9 +29,9 @@ const STYLE_PRESETS = {
    "": "Normal",
    bold: "Bold",
    italic: "Italic",
-   "bold italic": "Bold + Italic",
+   "bold italic": "Bold + italic",
    underline: "Underline",
-   "bold underline": "Bold + Underline",
+   "bold underline": "Bold + underline",
 };
 
 export class BetterBulletsSettingTab extends PluginSettingTab {
@@ -48,10 +48,10 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
       const { containerEl: page } = this;
       page.empty();
 
-      page.createEl("h3", { text: "Hierarchy Configuration" });
+      page.createEl("h3", { text: "Hierarchy configuration" });
 
       new Setting(page)
-         .setName("Number of Hierarchy Levels")
+         .setName("Number of hierarchy levels")
          .setDesc("# of ancestor levels to style (1-10)")
          .addText((text) => {
             text
@@ -75,10 +75,10 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
       this.levelSettingsContainer = page.createDiv("setting-group-no-border");
       this.renderLevelSettings();
 
-      page.createEl("h3", { text: "Text Formatting" });
+      page.createEl("h3", { text: "Text formatting" });
 
       new Setting(page)
-         .setName("Use Definition symbol")
+         .setName("Use definition symbol")
          .setDesc("Instead of bullet, use '@'")
          .addToggle((toggle) =>
             toggle
