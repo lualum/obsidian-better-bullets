@@ -22,14 +22,12 @@ interface PendingDecoration {
 	decoration: Decoration;
 }
 
-interface BulletInfo {
+interface Line {
 	indent: number;
-	indentStr: string;
+	level: number;
+	spaces: number;
 	bullet: string;
-	space: string;
 	text: string;
-	fullText: string;
-	match: RegExpMatchArray;
 }
 
 export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
@@ -44,7 +42,6 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 			}
 
 			update(update: ViewUpdate) {
-				// 2. Updated the check to listen for reloadEffect
 				if (
 					update.docChanged ||
 					update.viewportChanged ||
@@ -57,113 +54,37 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 				}
 			}
 
-			private getBulletInfo(
-				line: string,
-				tabSize: number,
-			): BulletInfo | null {
-				const match = line.match(/^(\s*)([-*+])(\s)(.*)$/);
-				if (!match) return null;
-
-				const [, indentStr, bullet, space, fullText] = match;
-				if (
-					indentStr === undefined ||
-					bullet === undefined ||
-					space === undefined ||
-					fullText === undefined
-				) {
-					return null;
-				}
-
-				const indent = indentStr.replace(
-					/\t/g,
-					" ".repeat(tabSize),
-				).length;
-
-				return {
-					indent,
-					indentStr,
-					bullet,
-					space,
-					text: fullText.trim(),
-					fullText,
-					match,
-				};
-			}
-
-			private getIndentAt(indents: number[], index: number): number {
-				return indents[index] ?? 0;
-			}
-
-			private getLevelAt(levels: number[], index: number): number {
-				return levels[index] ?? 0;
-			}
-
 			format(view: EditorView): DecorationSet {
 				const builder = new RangeSetBuilder<Decoration>();
-				const lines = view.state.doc.toString().split("\n");
-				const n = lines.length;
-				const tabSize = view.state.tabSize || 4;
+				const rawLines = view.state.doc.toString().split("\n");
 
-				const levels = new Array<number>(n).fill(0);
-				const indents = new Array<number>(n).fill(0);
+				const lines = this.getBulletInfo(rawLines, view.state.tabSize);
+				this.analyzeFold(-1, lines);
 
-				// 1. Pre-calculate indents for all bullet lines
-				for (let i = 0; i < n; i++) {
-					const line = lines[i];
-					if (!line) continue;
-
-					const info = this.getBulletInfo(line, tabSize);
-					if (info) {
-						indents[i] = info.indent;
-						levels[i] = 1;
-					}
-				}
-
-				// 2. DP Pass: Right-to-Left
-				for (let i = n - 1; i >= 0; i--) {
-					const currentIndent = this.getIndentAt(indents, i);
-
-					for (let j = i + 1; j < n; j++) {
-						const nextIndent = this.getIndentAt(indents, j);
-
-						if (nextIndent > currentIndent) {
-							const currentLevel = this.getLevelAt(levels, i);
-							const nextLevel = this.getLevelAt(levels, j);
-							levels[i] = Math.max(currentLevel, 1 + nextLevel);
-						}
-
-						if (nextIndent <= currentIndent) break;
-					}
-				}
-
-				// 3. Second pass: Apply decorations
 				let index = 0;
-				for (let lineNum = 0; lineNum < n; lineNum++) {
-					const line = lines[lineNum];
-					if (!line) {
-						index += 1;
-						continue;
-					}
+				for (let lineNum = 0; lineNum < rawLines.length; lineNum++) {
+					const raw = rawLines[lineNum] ?? "";
+					const line = lines[lineNum] ?? {
+						indent: 0,
+						level: 0,
+						spaces: 0,
+						bullet: "",
+						text: "",
+					};
 
-					const info = this.getBulletInfo(line, tabSize);
-					const level = this.getLevelAt(levels, lineNum);
-
-					if (!info || level === 0) {
-						index += line.length + 1;
-						continue;
-					}
-
-					const depthLevel = level - 1;
-					const bulletPos = index + info.indentStr.length;
 					const pendingDecorations: PendingDecoration[] = [];
+					if (!line.bullet) {
+						index += raw.length + 1;
+						continue;
+					}
 
 					const symbol = this.applyModifiers(
 						pendingDecorations,
-						info,
+						line,
 						index,
-						depthLevel,
 					);
 
+					const bulletPos = index + line.indent + line.spaces;
 					const bulletDecoration = Decoration.replace({
 						widget: new BulletWidget(this.plugin.settings, symbol),
 					});
@@ -179,30 +100,105 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 						builder.add(from, to, decoration);
 					}
 
-					index += line.length + 1;
+					index += raw.length + 1;
 				}
 
 				return builder.finish();
 			}
 
+			private getBulletInfo(lines: string[], tabSize: number): Line[] {
+				const result: Line[] = [];
+
+				for (const line of lines) {
+					const match = line.match(/^(\t*)(\s*)([-*+])(\s)(.*)$/);
+
+					if (match) {
+						// Valid bullet format: has bullet character AND space AND text
+						const [, indents, spaces, bulletChar, , text] = match;
+						const totalSpaces =
+							indents!.length * tabSize + spaces!.length;
+
+						result.push({
+							indent: Math.floor(totalSpaces / tabSize),
+							level: 0,
+							spaces: totalSpaces % tabSize,
+							bullet: bulletChar!,
+							text: text ?? "",
+						});
+					} else {
+						// No valid bullet - treat entire line as text
+						const indentMatch = line.match(/^(\t*)(.*)$/);
+						const [, indents, text] = indentMatch!;
+
+						result.push({
+							indent: indents!.length,
+							level: 0,
+							spaces: 0,
+							bullet: "",
+							text: text ?? "",
+						});
+					}
+				}
+
+				return result;
+			}
+
+			private analyzeFold(
+				index: number,
+				lines: Line[],
+			): {
+				end: number;
+				level: number;
+			} {
+				let currentLine = index + 1;
+				let level = 0;
+
+				if (index === -1) {
+					while (currentLine < lines.length) {
+						const fold = this.analyzeFold(currentLine, lines);
+						currentLine = fold.end;
+					}
+					return { end: lines.length, level: 0 };
+				}
+
+				if (!lines[index]) return { end: currentLine, level };
+
+				while (
+					currentLine < lines.length &&
+					lines[index].indent < lines[currentLine]!.indent
+				) {
+					if (
+						!lines[currentLine]!.bullet &&
+						!lines[currentLine]!.text.trim()
+					) {
+						currentLine++;
+						continue;
+					}
+
+					const fold = this.analyzeFold(currentLine, lines);
+					currentLine = fold.end;
+					level = Math.max(level, fold.level + 1);
+				}
+
+				lines[index].level = level;
+				return { end: currentLine, level };
+			}
+
 			private applyModifiers(
 				decorations: PendingDecoration[],
-				info: BulletInfo,
+				info: Line,
 				lineStartIndex: number,
-				level: number,
 			): BulletType {
 				const styles: string[] = [];
 				let symbolChar: string;
 
-				const bulletPos = lineStartIndex + info.indentStr.length;
+				const bulletPos = lineStartIndex + info.indent;
 				const textIndex =
-					bulletPos + info.bullet.length + info.space.length;
+					bulletPos + info.bullet.length + info.spaces + 1; // +1 for space
 				const text = info.text;
-				const fullText = info.fullText;
-				const trimOffset = fullText.indexOf(text);
 
 				const bulletConfig =
-					this.plugin.settings.bulletTypes[level] ||
+					this.plugin.settings.bulletTypes[info.level] ||
 					this.plugin.settings.bulletTypes[
 						this.plugin.settings.bulletTypes.length - 1
 					]!;
@@ -228,8 +224,8 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 				}
 
 				if (fontSize !== 1.0 && text.length > 0) {
-					const lineStart = textIndex + trimOffset;
-					const lineEnd = textIndex + trimOffset + text.length;
+					const lineStart = textIndex;
+					const lineEnd = textIndex + text.length;
 
 					const lineStyles = [`font-size: ${fontSize}em`];
 					if (cssClasses.includes("bold")) {
@@ -257,7 +253,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 				if (text.startsWith("Note: ")) {
 					symbolChar = "*";
 
-					const noteStart = textIndex + trimOffset;
+					const noteStart = textIndex;
 					const noteEnd = noteStart + 5;
 					const boldDecoration = Decoration.mark({
 						attributes: {
@@ -271,7 +267,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 					});
 
 					const noteTextStart = noteEnd + 1;
-					const noteTextEnd = textIndex + trimOffset + text.length;
+					const noteTextEnd = textIndex + text.length;
 					if (noteTextStart < noteTextEnd) {
 						const italicDecoration = Decoration.mark({
 							attributes: { style: "font-style: italic;" },
@@ -290,7 +286,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 						symbolChar = "@";
 					}
 
-					const termStart = textIndex + trimOffset;
+					const termStart = textIndex;
 					const termEnd = termStart + pipeIndex;
 
 					if (termStart < termEnd) {
@@ -307,7 +303,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 					}
 
 					const defStart = termEnd + 3;
-					const defEnd = textIndex + trimOffset + text.length;
+					const defEnd = textIndex + text.length;
 					if (defStart < defEnd) {
 						const italicDecoration = Decoration.mark({
 							attributes: { style: "font-style: italic;" },
@@ -327,8 +323,8 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 						`color: ${this.plugin.settings.exclamationTextColor}`,
 					);
 
-					const importantStart = textIndex + trimOffset;
-					const importantEnd = textIndex + trimOffset + text.length;
+					const importantStart = textIndex;
+					const importantEnd = textIndex + text.length;
 					if (importantStart < importantEnd) {
 						const boldDecoration = Decoration.mark({
 							attributes: {
@@ -346,7 +342,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 				this.applyRegexFormatting(
 					decorations,
 					text,
-					textIndex + trimOffset,
+					textIndex,
 					/"([^"]+)"/g,
 					"font-style: italic;",
 				);
@@ -354,7 +350,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 				this.applyRegexFormatting(
 					decorations,
 					text,
-					textIndex + trimOffset,
+					textIndex,
 					/\([^)]+\)/g,
 					"font-style: italic;",
 				);
@@ -362,7 +358,7 @@ export function bulletReplacementPlugin(plugin: BetterBulletsPlugin) {
 				this.applyRegexFormatting(
 					decorations,
 					text,
-					textIndex + trimOffset,
+					textIndex,
 					/\b\d{4}\b/g,
 					"text-decoration: underline;",
 				);
