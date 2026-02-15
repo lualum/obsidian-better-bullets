@@ -8,22 +8,40 @@ Better Bullets is an Obsidian plugin that enhances the visual hierarchy and read
 
 The plugin automatically changes bullet symbols based on their relationship to other items in the list:
 
--   **Grandparent (Level 2+):** Uses the `⇒` symbol.
--   **Parent (Level 1):** Uses the `→` symbol.
--   **Leaf (Level 0):** Uses the standard `-` symbol.
+- **Grandparent (Level 2+):** Uses the `=>` symbol.
+- **Parent (Level 1):** Uses the `->` symbol.
+- **Leaf (Level 0):** Uses the standard `-` symbol.
 
 ### 2. Dynamic Text Formatting
 
 Text is formatted based on its position in a list and specific syntax within the line:
 
--   **Automatic Sizing:** "Parent" and "Grandparent" lines are scaled up based on your settings to create a clear visual outline.
--   **Non-Leaf Bolding:** High-level list items can be automatically bolded to act as section headers.
--   **Definitions:** Using the `Term | Definition` syntax bolds the term, highlights it, and italicizes the definition.
--   **Notes:** Lines starting with `Note: ` are italicized, with the word "Note:" set to bold and italic.
--   **Importance:** Lines ending with an exclamation mark `!` are colored and bolded.
--   **Automatic Markings:** \* **Years:** 4-digit years (e.g., 2024) are automatically underlined.
--   **Quotes:** Text inside `"quotes"` is italicized.
--   **Parentheses:** Text inside `(parentheses)` is italicized.
+- **Automatic Sizing:** "Parent" and "Grandparent" lines are scaled up based on your settings to create a clear visual outline.
+- **Non-Leaf Bolding:** High-level list items can be automatically bolded to act as section headers.
+- **Definitions:** Using the `Term | Definition` syntax bolds the term, highlights it, and italicizes the definition.
+- **Notes:** Lines starting with `Note: ` are italicized, with the word "Note:" set to bold and italic.
+- **Importance:** Lines ending with an exclamation mark `!` are colored and bolded.
+- **Automatic Markings:**
+    - **Years:** 4-digit years (e.g., 2024) are automatically underlined.
+    - **Quotes:** Text inside `"quotes"` is italicized.
+    - **Parentheses:** Text inside `(parentheses)` is italicized.
+
+### 3. Settings
+
+#### Hierarchy Configuration
+
+Define the bullet symbol and CSS for each indentation level. Add or remove levels as needed using the **Add level +** and **Remove last -** buttons.
+
+#### Formatting Rules
+
+Create custom rules that match bullet text using regex patterns and apply CSS styles. Each rule supports:
+
+- **Custom bullet symbol** — overrides the hierarchy symbol for matched bullets.
+- **Custom bullet CSS** — overrides the hierarchy CSS for matched bullets.
+- **Match mode** — either _Match full line_ (pattern must match the entire text) or _Match all_ (CSS is applied if the pattern matches anywhere in the text).
+- **Patterns and styles** — one or more regex/CSS pairs; the first matching pattern's styles are applied.
+
+Rules can be added, deleted, and reordered. Clicking **Reset to defaults** will prompt a confirmation dialog before overwriting all rules with the plugin defaults.
 
 ## Installation
 
