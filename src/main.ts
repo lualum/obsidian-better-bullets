@@ -1,11 +1,8 @@
 import type { EditorView } from "@codemirror/view";
 import { bulletReplacementPlugin } from "editor";
 import { MarkdownView, Plugin } from "obsidian";
-import {
-	BetterBulletsSettings,
-	BetterBulletsSettingTab,
-	DEFAULT_SETTINGS,
-} from "./settings";
+import { BetterBulletsSettings, BetterBulletsSettingTab } from "./settings";
+import { DEFAULT_SETTINGS } from "default";
 
 export default class BetterBulletsPlugin extends Plugin {
 	settings: BetterBulletsSettings;

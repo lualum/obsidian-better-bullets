@@ -1,43 +1,32 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Modal, PluginSettingTab, Setting } from "obsidian";
 import type BetterBulletsPlugin from "./main";
+import { DEFAULT_SETTINGS } from "default";
 
 export interface BulletType {
 	symbol: string;
-	fontSize: number;
-	cssClasses: string;
+	css: string;
+}
+
+export type MatchMode = "full" | "any";
+
+export interface FormattingRule {
+	name: string;
+	matchMode: MatchMode;
+	styles: {
+		pattern: string;
+		css: string;
+	}[];
+	bullet?: string;
+	bulletCss?: string;
 }
 
 export interface BetterBulletsSettings {
-	useDefinitionSymbol: boolean;
-	hierarchyLevels: number;
-	bulletTypes: BulletType[];
-	exclamationTextColor: string;
+	hierarchy: BulletType[];
+	rules: FormattingRule[];
 }
-
-export const DEFAULT_SETTINGS: BetterBulletsSettings = {
-	useDefinitionSymbol: false,
-	hierarchyLevels: 3,
-	bulletTypes: [
-		{ symbol: "-", fontSize: 1.0, cssClasses: "" },
-		{ symbol: "→", fontSize: 1.2, cssClasses: "bold" },
-		{ symbol: "⇒", fontSize: 1.4, cssClasses: "bold" },
-	],
-	exclamationTextColor: "var(--text-sub-accent)",
-};
-
-const STYLE_PRESETS = {
-	"": "Normal",
-	bold: "Bold",
-	italic: "Italic",
-	"bold italic": "Bold + italic",
-	underline: "Underline",
-	"bold underline": "Bold + underline",
-};
 
 export class BetterBulletsSettingTab extends PluginSettingTab {
 	plugin: BetterBulletsPlugin;
-	private levelSettingsContainer: HTMLElement | null = null;
-	private levelSettings: Setting[] = [];
 
 	constructor(app: App, plugin: BetterBulletsPlugin) {
 		super(app, plugin);
@@ -49,173 +38,390 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		page.empty();
 
 		new Setting(page).setName("Hierarchy configuration").setHeading();
+		this.renderLevelSettings(page);
 
-		new Setting(page)
-			.setName("Number of hierarchy levels")
-			.setDesc("# of ancestor levels to style (1-10)")
-			.addText((text) => {
-				text.setValue(
-					String(this.plugin.settings.hierarchyLevels)
-				).onChange(async (value) => {
-					const num = parseInt(value);
-					if (!isNaN(num) && num >= 1 && num <= 10) {
-						this.plugin.settings.hierarchyLevels = num;
-						this.adjustBulletTypesLength(num);
-						this.renderLevelSettings();
-						await this.triggerRefresh();
-					}
-				});
-
-				text.inputEl.setCssProps({
-					width: "50px",
-					"text-align": "center",
-				});
-
-				return text;
-			});
-
-		this.levelSettingsContainer = page.createDiv("setting-group-no-border");
-		this.renderLevelSettings();
-
-		new Setting(page).setName("Text formatting").setHeading();
-
-		new Setting(page)
-			.setName("Use definition symbol")
-			.setDesc("Instead of bullet, use '@'")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.useDefinitionSymbol)
-					.onChange(async (value) => {
-						this.plugin.settings.useDefinitionSymbol = value;
-						await this.triggerRefresh();
-					})
-			);
-
-		new Setting(page)
-			.setName("Exclamation line color")
-			.setDesc("Color of exclamation text")
-			.addText((text) => {
-				text.setValue(
-					this.plugin.settings.exclamationTextColor
-				).onChange(async (value) => {
-					this.plugin.settings.exclamationTextColor = value;
-					await this.triggerRefresh();
-				});
-
-				text.inputEl.setCssProps({
-					width: "200px",
-					"text-align": "center",
-				});
-
-				return text;
-			});
+		new Setting(page).setName("Formatting rules").setHeading();
+		this.renderFormattingRules(page);
 	}
 
-	private ensureLevelExists(index: number): BulletType {
-		if (this.plugin.settings.bulletTypes[index]) {
-			return this.plugin.settings.bulletTypes[index];
+	getLevelStyle(level: number): BulletType {
+		if (this.plugin.settings.hierarchy[level]) {
+			return this.plugin.settings.hierarchy[level];
 		}
 
-		const newLevel = DEFAULT_SETTINGS.bulletTypes[index]
-			? { ...DEFAULT_SETTINGS.bulletTypes[index] }
+		const newLevel = DEFAULT_SETTINGS.hierarchy[level]
+			? { ...DEFAULT_SETTINGS.hierarchy[level] }
 			: {
 					symbol: "*",
-					fontSize: 1.2 + index * 0.2,
-					cssClasses: "bold",
-			  };
+					css: "",
+				};
 
-		this.plugin.settings.bulletTypes[index] = newLevel;
+		this.plugin.settings.hierarchy[level] = newLevel;
 		return newLevel;
 	}
 
-	private createLevelSetting(index: number): Setting {
-		const levelName = this.getLevelName(index);
-		const level = this.ensureLevelExists(index);
+	renderLevelSettings(page: HTMLElement) {
+		const container = page.createDiv("setting-group-no-border");
 
-		return new Setting(this.levelSettingsContainer!)
-			.setName(`Level ${index + 1} (${levelName})`)
-			.addText((text) => {
-				text.setValue(level.symbol).onChange(async (value) => {
-					this.ensureLevelExists(index).symbol = value;
-					await this.triggerRefresh();
-				});
-				text.inputEl.setCssProps({
-					width: "50px",
-					"text-align": "center",
-				});
-				return text;
-			})
-			.addText((text) => {
-				text.setValue(String(level.fontSize)).onChange(
-					async (value) => {
-						const num = parseFloat(value);
-						if (!isNaN(num)) {
-							this.ensureLevelExists(index).fontSize = num;
-							await this.triggerRefresh();
-						}
-					}
+		const card = container.createDiv("bb-rule-card");
+
+		const table = card.createEl("table", {
+			cls: "bb-table",
+		});
+
+		const colgroup = table.createEl("colgroup");
+		colgroup.createEl("col", { attr: { style: "width: 16.5%" } }); // Level
+		colgroup.createEl("col", { attr: { style: "width: 16.5%" } }); // Symbol
+		colgroup.createEl("col", { attr: { style: "width: 67%" } }); // CSS
+
+		const thead = table.createEl("thead");
+		const headerRow = thead.createEl("tr");
+		headerRow.createEl("th", { text: "Level" });
+		headerRow.createEl("th", { text: "Symbol" });
+		headerRow.createEl("th", { text: "CSS" });
+
+		const tbody = table.createEl("tbody");
+		for (let i = 0; i < this.plugin.settings.hierarchy.length; i++) {
+			this.createLevelRow(tbody, i);
+		}
+
+		const btnRow = card.createDiv("bb-btn-row");
+
+		const addBtn = btnRow.createEl("button", {
+			text: "Add level +",
+			cls: "bb-btn-add",
+		});
+		addBtn.addEventListener("click", () => {
+			const index = this.plugin.settings.hierarchy.length;
+			const newLevel: BulletType = DEFAULT_SETTINGS.hierarchy[index]
+				? { ...DEFAULT_SETTINGS.hierarchy[index] }
+				: { symbol: "*", css: "" };
+			this.plugin.settings.hierarchy.push(newLevel);
+			void this.triggerRefresh();
+			container.remove();
+			this.renderLevelSettings(page);
+		});
+
+		const removeBtn = btnRow.createEl("button", {
+			text: "Remove last -",
+			cls: "bb-btn-remove",
+		});
+		removeBtn.addEventListener("click", () => {
+			if (this.plugin.settings.hierarchy.length === 0) return;
+			this.plugin.settings.hierarchy.pop();
+			void this.triggerRefresh();
+			container.remove();
+			this.renderLevelSettings(page);
+		});
+	}
+
+	createLevelRow(tbody: HTMLElement, index: number) {
+		const level = this.getLevelStyle(index);
+
+		const row = tbody.createEl("tr", { cls: "bb-row" });
+
+		row.createEl("td", { text: `${index + 1}` });
+
+		const symbolCell = row.createEl("td");
+		const symbolInput = symbolCell.createEl("input", {
+			type: "text",
+			value: level.symbol,
+		});
+		symbolInput.classList.add("bb-setting-short");
+		symbolInput.addEventListener("input", (e) => {
+			this.getLevelStyle(index).symbol = (
+				e.target as HTMLInputElement
+			).value;
+			void this.triggerRefresh();
+		});
+
+		const cssCell = row.createEl("td");
+		const cssText = cssCell.createEl("textarea", {
+			cls: "bb-css-textarea",
+		});
+		cssText.value = level.css ?? "";
+
+		// eslint-disable-next-line obsidianmd/ui/sentence-case
+		cssText.placeholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
+		cssText.addEventListener("input", (e) => {
+			this.getLevelStyle(index).css = (
+				e.target as HTMLTextAreaElement
+			).value;
+			void this.triggerRefresh();
+		});
+	}
+
+	renderFormattingRules(page: HTMLElement) {
+		const container = page.createDiv("setting-group-no-border");
+
+		this.plugin.settings.rules.forEach((rule, index) => {
+			this.createRuleCard(container, rule, index, page);
+		});
+
+		const btnRow = container.createDiv("bb-btn-row");
+
+		const addBtn = btnRow.createEl("button", {
+			text: "Add rule +",
+			cls: "bb-btn-add",
+		});
+		addBtn.addEventListener("click", () => {
+			this.addNewRule(container, page);
+		});
+
+		const resetBtn = btnRow.createEl("button", {
+			text: "Reset to defaults",
+			cls: "bb-btn-remove",
+		});
+		resetBtn.addEventListener("click", () => {
+			new ConfirmResetModal(this.app, () => {
+				this.plugin.settings.rules = DEFAULT_SETTINGS.rules.map(
+					(r) => ({
+						...r,
+						styles: r.styles.map((s) => ({ ...s })),
+					}),
 				);
-				text.inputEl.setCssProps({
-					width: "50px",
-					"text-align": "center",
-				});
-				return text;
-			})
-			.addDropdown((dropdown) => {
-				Object.entries(STYLE_PRESETS).forEach(([value, label]) => {
-					dropdown.addOption(value, label);
-				});
+				void this.triggerRefresh();
+				container.remove();
+				this.renderFormattingRules(page);
+			}).open();
+		});
+	}
 
-				dropdown
-					.setValue(level.cssClasses || "")
-					.onChange(async (value) => {
-						this.ensureLevelExists(index).cssClasses = value;
-						await this.triggerRefresh();
-					});
+	createRuleCard(
+		container: HTMLElement,
+		rule: FormattingRule,
+		index: number,
+		page: HTMLElement,
+	) {
+		const card = container.createDiv("bb-rule-card");
 
-				dropdown.selectEl.setCssProps({
-					width: "180px",
-					"text-align": "center",
-					"text-align-last": "center",
+		const header = card.createDiv("bb-rule-header");
+
+		const titleInput = header.createEl("input", {
+			type: "text",
+			value: rule.name || `Rule ${index + 1}`,
+			cls: "bb-rule-title",
+		});
+		titleInput.placeholder = "Rule name";
+		titleInput.addEventListener("input", (e) => {
+			this.plugin.settings.rules[index]!.name = (
+				e.target as HTMLInputElement
+			).value;
+			void this.triggerRefresh();
+		});
+
+		const deleteBtn = header.createEl("button", {
+			text: "Delete",
+			cls: "bb-btn-remove",
+		});
+		deleteBtn.addEventListener("click", () => {
+			this.plugin.settings.rules.splice(index, 1);
+			void this.triggerRefresh();
+			container.remove();
+			this.renderFormattingRules(page);
+		});
+
+		new Setting(card)
+			.setName("Custom bullet symbol")
+			.setDesc(
+				"Overrides hierarchy symbol. Leave empty to use hierarchy symbol.",
+			)
+			.addText((text) => {
+				text.setValue(rule.bullet || "").onChange((value) => {
+					this.plugin.settings.rules[index]!.bullet =
+						value.trim() || undefined;
+					void this.triggerRefresh();
 				});
-				return dropdown;
+				text.inputEl.classList.add("bb-setting-short");
 			});
+
+		const bulletCssSetting = new Setting(card)
+			.setName("Custom bullet CSS")
+			.setDesc(
+				"Overrides hierarchy CSS. Leave empty to use hierarchy CSS.",
+			);
+		const bulletCssText = bulletCssSetting.controlEl.createEl("textarea", {
+			cls: "bb-textarea",
+		});
+		bulletCssText.value = rule.bulletCss ?? "";
+
+		// eslint-disable-next-line obsidianmd/ui/sentence-case
+		bulletCssText.placeholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
+		bulletCssText.addEventListener("input", (e) => {
+			const value = (e.target as HTMLTextAreaElement).value;
+			this.plugin.settings.rules[index]!.bulletCss =
+				value.trim() || undefined;
+			void this.triggerRefresh();
+		});
+
+		new Setting(card)
+			.setName("Match mode")
+			.setDesc(
+				"Full line: the pattern must match the entire bullet text. Match all: apply CSS if any pattern matches anywhere in the text.",
+			)
+			.addDropdown((drop) => {
+				drop.addOption("full", "Match full line")
+					.addOption("any", "Match all")
+					.setValue(rule.matchMode ?? "full")
+					.onChange((value) => {
+						this.plugin.settings.rules[index]!.matchMode =
+							value as MatchMode;
+						void this.triggerRefresh();
+					});
+			});
+
+		const patternsSection = card.createDiv("bb-rule-pattern-section");
+		new Setting(patternsSection)
+			.setName("Patterns and styles")
+			.setDesc(
+				"Each pattern is a regex matched against the bullet text. The first matching pattern's CSS is applied.",
+			);
+		this.renderPatternsTable(patternsSection, rule, index, container, page);
 	}
 
-	private renderLevelSettings() {
-		if (!this.levelSettingsContainer) return;
+	renderPatternsTable(
+		container: HTMLElement,
+		rule: FormattingRule,
+		ruleIndex: number,
+		rulesContainer: HTMLElement,
+		page: HTMLElement,
+	) {
+		const existing = container.querySelector("table");
+		if (existing) existing.remove();
+		const existingBtnRow = container.querySelector(".bb-btn-row");
+		if (existingBtnRow) existingBtnRow.remove();
 
-		this.levelSettings = [];
-		this.levelSettingsContainer.empty();
+		const table = container.createEl("table", {
+			cls: "bb-table",
+		});
 
-		for (let i = 0; i < this.plugin.settings.hierarchyLevels; i++) {
-			this.levelSettings.push(this.createLevelSetting(i));
-		}
+		const colgroup = table.createEl("colgroup");
+		colgroup.createEl("col", { attr: { style: "width: 33%" } }); // Regex
+		colgroup.createEl("col", { attr: { style: "width: 67%" } }); // CSS
+
+		const thead = table.createEl("thead");
+		const headerRow = thead.createEl("tr");
+		headerRow.createEl("th", { text: "Regex" });
+		headerRow.createEl("th", { text: "CSS" });
+
+		const tbody = table.createEl("tbody");
+
+		rule.styles.forEach((styleConfig, styleIndex) => {
+			this.createPatternRow(tbody, ruleIndex, styleIndex, styleConfig);
+		});
+
+		const btnRow = container.createDiv("bb-btn-row");
+
+		const addBtn = btnRow.createEl("button", {
+			text: "Add pattern +",
+			cls: "bb-btn-add",
+		});
+		addBtn.addEventListener("click", () => {
+			this.plugin.settings.rules[ruleIndex]!.styles.push({
+				pattern: "",
+				css: "",
+			});
+			void this.triggerRefresh();
+			rulesContainer.remove();
+			this.renderFormattingRules(page);
+		});
+
+		const removeBtn = btnRow.createEl("button", {
+			text: "Remove last -",
+			cls: "bb-btn-remove",
+		});
+		removeBtn.addEventListener("click", () => {
+			const styles = this.plugin.settings.rules[ruleIndex]!.styles;
+			if (styles.length === 0) return;
+			styles.pop();
+			void this.triggerRefresh();
+			rulesContainer.remove();
+			this.renderFormattingRules(page);
+		});
 	}
 
-	private adjustBulletTypesLength(newLength: number) {
-		const current = this.plugin.settings.bulletTypes;
+	createPatternRow(
+		tbody: HTMLElement,
+		ruleIndex: number,
+		styleIndex: number,
+		styleConfig: { pattern: string; css: string },
+	) {
+		const row = tbody.createEl("tr", { cls: "bb-row" });
 
-		if (current.length < newLength) {
-			for (let i = current.length; i < newLength; i++) {
-				current.push({
-					symbol: "*",
-					fontSize: 1.2 + i * 0.2,
-					cssClasses: "",
-				});
-			}
-		} else if (current.length > newLength) {
-			this.plugin.settings.bulletTypes = current.slice(0, newLength);
-		}
+		const patternCell = row.createEl("td");
+		const patternInput = patternCell.createEl("input", {
+			type: "text",
+			cls: "bb-rule-title",
+		});
+		patternInput.value = styleConfig.pattern;
+		patternInput.placeholder = "Pattern…";
+		patternInput.addEventListener("input", (e) => {
+			this.plugin.settings.rules[ruleIndex]!.styles[styleIndex]!.pattern =
+				(e.target as HTMLInputElement).value;
+			void this.triggerRefresh();
+		});
+
+		const cssCell = row.createEl("td");
+		const cssInput = cssCell.createEl("textarea");
+		cssInput.value = styleConfig.css;
+		cssInput.placeholder = "CSS styles…";
+		cssInput.addEventListener("input", (e) => {
+			this.plugin.settings.rules[ruleIndex]!.styles[styleIndex]!.css = (
+				e.target as HTMLTextAreaElement
+			).value;
+			void this.triggerRefresh();
+		});
 	}
 
-	private getLevelName(index: number): string {
-		const names = ["leaf", "parent", "grandparent", "great-grandparent"];
-		return names[index] ?? `great(x${index - 2})-grandparent`;
+	addNewRule(container: HTMLElement, page: HTMLElement) {
+		const newRule: FormattingRule = {
+			name: "New Rule",
+			matchMode: "full",
+			styles: [],
+		};
+		this.plugin.settings.rules.push(newRule);
+		void this.triggerRefresh();
+		container.remove();
+		this.renderFormattingRules(page);
 	}
 
-	private async triggerRefresh() {
+	async triggerRefresh() {
 		await this.plugin.saveSettings();
 		this.plugin.refreshEditors();
+	}
+}
+
+class ConfirmResetModal extends Modal {
+	private onConfirm: () => void;
+
+	constructor(app: App, onConfirm: () => void) {
+		super(app);
+		this.onConfirm = onConfirm;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.createEl("h3", { text: "Reset to defaults?" });
+		contentEl.createEl("p", {
+			text: "This will replace all formatting rules with the defaults. This cannot be undone.",
+		});
+
+		const btnRow = contentEl.createDiv({ cls: "modal-button-container" });
+
+		const confirmBtn = btnRow.createEl("button", {
+			text: "Reset",
+			cls: "bb-btn-remove",
+		});
+		confirmBtn.addEventListener("click", () => {
+			this.onConfirm();
+			this.close();
+		});
+
+		const cancelBtn = btnRow.createEl("button", { text: "Cancel" });
+		cancelBtn.addEventListener("click", () => this.close());
+	}
+
+	onClose() {
+		this.contentEl.empty();
 	}
 }

@@ -15,13 +15,8 @@ export class BulletWidget extends WidgetType {
 	toDOM(): HTMLElement {
 		const span = document.createElement("span");
 		span.textContent = this.type.symbol;
-
-		if (this.type.style) {
-			span.style.cssText = this.type.style;
-		}
-
-		span.classList.add("bullet-span");
-
+		span.style.cssText = this.type.style;
+		span.classList.add("bb-bullet");
 		return span;
 	}
 }
