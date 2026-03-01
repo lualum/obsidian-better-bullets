@@ -355,9 +355,29 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		});
 		patternInput.value = styleConfig.pattern;
 		patternInput.placeholder = "Pattern…";
+
+		const validatePattern = (value: string) => {
+			if (!value) {
+				patternInput.removeAttribute("title");
+				patternInput.classList.remove("bb-input-error");
+				return;
+			}
+			try {
+				new RegExp(value);
+				patternInput.removeAttribute("title");
+				patternInput.classList.remove("bb-input-error");
+			} catch (e) {
+				patternInput.title = `Invalid regex: ${(e as Error).message}`;
+				patternInput.classList.add("bb-input-error");
+			}
+		};
+
+		validatePattern(styleConfig.pattern);
 		patternInput.addEventListener("input", (e) => {
+			const value = (e.target as HTMLInputElement).value;
+			validatePattern(value);
 			this.plugin.settings.rules[ruleIndex]!.styles[styleIndex]!.pattern =
-				(e.target as HTMLInputElement).value;
+				value;
 			void this.triggerRefresh();
 		});
 

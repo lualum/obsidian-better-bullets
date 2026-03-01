@@ -74,3 +74,6 @@
 	gap: 16px;
 	margin-top: 8px;
 }
+.bb-input-error {
+	outline: solid var(--color-red) !important;
+}

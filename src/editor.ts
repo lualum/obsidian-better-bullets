@@ -158,9 +158,14 @@ class BetterBulletsViewPlugin {
 			for (const rule of this.plugin.settings.rules) {
 				const matchMode = rule.matchMode;
 				if (matchMode === "full") {
-					const regex = new RegExp(
-						`^(${rule.styles.map((s) => s?.pattern).join(")(")})$`,
-					);
+					let regex: RegExp;
+					try {
+						regex = new RegExp(
+							`^(${rule.styles.map((s) => s?.pattern).join(")(")})$`,
+						);
+					} catch {
+						continue;
+					}
 					const groups = text.match(regex);
 					if (!groups) continue;
 					if (rule.bullet) {
@@ -192,9 +197,16 @@ class BetterBulletsViewPlugin {
 					let anyMatched = false;
 					for (const ruleSettings of rule.styles) {
 						if (!ruleSettings?.pattern) continue;
-						for (const match of text.matchAll(
-							new RegExp(ruleSettings.pattern, "g"),
-						)) {
+						let compiledRegex: RegExp;
+						try {
+							compiledRegex = new RegExp(
+								ruleSettings.pattern,
+								"g",
+							);
+						} catch {
+							continue;
+						}
+						for (const match of text.matchAll(compiledRegex)) {
 							anyMatched = true;
 							if (!ruleSettings.css) continue;
 							const textDecoration = Decoration.mark({
