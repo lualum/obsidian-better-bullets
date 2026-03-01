@@ -155,6 +155,9 @@ class BetterBulletsViewPlugin {
 			if (!bulletSettings) return;
 			let symbol = bulletSettings.symbol;
 			let bulletCss = bulletSettings.css;
+
+			const ruleDecorationsBefore = pendingDecorations.length;
+
 			for (const rule of this.plugin.settings.rules) {
 				const matchMode = rule.matchMode;
 				if (matchMode === "full") {
@@ -172,19 +175,30 @@ class BetterBulletsViewPlugin {
 						symbol = rule.bullet;
 					}
 					if (rule.bulletCss) {
-						bulletCss = rule.bulletCss;
+						// Merge rule bulletCss with hierarchy bulletCss instead of overwriting
+						bulletCss = bulletCss
+							? `${bulletCss}; ${rule.bulletCss}`
+							: rule.bulletCss;
 					}
 					let groupIdx = textIdx;
 					for (let i = 0; i < rule.styles.length; i++) {
 						const ruleSettings = rule.styles[i];
 						const groupText = groups[i + 1];
 						if (groupText === undefined) break;
-						if (!ruleSettings || !ruleSettings.css) {
+						if (!ruleSettings) {
+							groupIdx += groupText.length;
+							continue;
+						}
+						// Merge hierarchy css as base, rule css overrides on top
+						const mergedCss = [bulletSettings.css, ruleSettings.css]
+							.filter(Boolean)
+							.join("; ");
+						if (!mergedCss) {
 							groupIdx += groupText.length;
 							continue;
 						}
 						const textDecoration = Decoration.mark({
-							attributes: { style: ruleSettings.css },
+							attributes: { style: mergedCss },
 						});
 						pendingDecorations.push({
 							from: groupIdx,
@@ -209,8 +223,16 @@ class BetterBulletsViewPlugin {
 						for (const match of text.matchAll(compiledRegex)) {
 							anyMatched = true;
 							if (!ruleSettings.css) continue;
+							// Merge hierarchy css as base, rule css overrides on top
+							const mergedCss = [
+								bulletSettings.css,
+								ruleSettings.css,
+							]
+								.filter(Boolean)
+								.join("; ");
+							if (!mergedCss) continue;
 							const textDecoration = Decoration.mark({
-								attributes: { style: ruleSettings.css },
+								attributes: { style: mergedCss },
 							});
 							pendingDecorations.push({
 								from: textIdx + match.index,
@@ -224,24 +246,51 @@ class BetterBulletsViewPlugin {
 							symbol = rule.bullet;
 						}
 						if (rule.bulletCss) {
-							bulletCss = rule.bulletCss;
+							bulletCss = bulletCss
+								? `${bulletCss}; ${rule.bulletCss}`
+								: rule.bulletCss;
 						}
 					}
 				}
 			}
+
+			// Apply base CSS only to ranges NOT already covered by a rule decoration
 			const css = bulletSettings.css;
 			if (css && text.length > 0) {
-				const textDecoration = Decoration.mark({
-					attributes: {
-						style: css,
-					},
-				});
-				pendingDecorations.push({
-					from: textIdx,
-					to: textIdx + text.length,
-					decoration: textDecoration,
-				});
+				const ruleDecorations = pendingDecorations
+					.slice(ruleDecorationsBefore)
+					.filter(
+						(d) =>
+							d.from >= textIdx && d.to <= textIdx + text.length,
+					)
+					.sort((a, b) => a.from - b.from);
+
+				let pos = textIdx;
+				const end = textIdx + text.length;
+
+				for (const covered of ruleDecorations) {
+					if (pos < covered.from) {
+						pendingDecorations.push({
+							from: pos,
+							to: covered.from,
+							decoration: Decoration.mark({
+								attributes: { style: css },
+							}),
+						});
+					}
+					pos = Math.max(pos, covered.to);
+				}
+				if (pos < end) {
+					pendingDecorations.push({
+						from: pos,
+						to: end,
+						decoration: Decoration.mark({
+							attributes: { style: css },
+						}),
+					});
+				}
 			}
+
 			const bulletDecoration = Decoration.replace({
 				widget: new BulletWidget(this.plugin.settings, {
 					symbol: symbol,

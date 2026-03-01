@@ -10,13 +10,8 @@ export default class BetterBulletsPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// Register CodeMirror extensions
 		this.registerEditorExtension([bulletReplacementPlugin(this)]);
-
 		this.addSettingTab(new BetterBulletsSettingTab(this.app, this));
-
-		// Register as Obsidian commands so users can remap them in
-		// Settings → Hotkeys like any other command.
 		this.addCommand({
 			id: "move-to-same-indent-up",
 			name: "Move to previous line with same indentation",
