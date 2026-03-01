@@ -27,12 +27,12 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 			matchMode: "full",
 			styles: [
 				{
-					pattern: ".*",
+					pattern: "[^|]*",
 					css: "font-weight: bold; \nbackground-color: var(--text-highlight-bg);",
 				},
 				{
 					pattern: " \\| ",
-					css: "font-weight: bold;",
+					css: "",
 				},
 				{
 					pattern: ".*",
@@ -46,11 +46,14 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 			matchMode: "full",
 			styles: [
 				{
-					pattern: ".*!",
+					pattern: ".*",
 					css: "font-weight: bold; \ncolor: var(--text-sub-accent);",
 				},
+				{
+					pattern: "!",
+					css: "font-weight: bold; \ncolor: color-mix(in srgb, var(--text-sub-accent) 50%, transparent);\n--bb-control: 1;",
+				},
 			],
-			bullet: "!",
 			bulletCss: "font-weight: bold; \ncolor: var(--text-sub-accent);",
 		},
 		{
@@ -70,6 +73,30 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 				{
 					pattern: "\\b(\\d{4})\\b",
 					css: "text-decoration: underline;",
+				},
+			],
+		},
+		{
+			name: "Quotes",
+			matchMode: "any",
+			styles: [
+				{
+					pattern: '[\u201c"]([^\u201d"]*)["\\u201d]',
+					css: "font-style: italic;",
+				},
+			],
+		},
+		{
+			name: "Examples",
+			matchMode: "full",
+			styles: [
+				{
+					pattern: "ex. ",
+					css: "",
+				},
+				{
+					pattern: ".*",
+					css: "font-style: italic;",
 				},
 			],
 		},

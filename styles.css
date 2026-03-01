@@ -57,6 +57,7 @@
 
 .bb-btn-add {
 	background: var(--color-blue) !important;
+	color: white !important;
 }
 .bb-btn-add:hover {
 	filter: brightness(1.15);
@@ -64,6 +65,7 @@
 
 .bb-btn-remove {
 	background: var(--color-red) !important;
+	color: white !important;
 }
 .bb-btn-remove:hover {
 	filter: brightness(1.15);
@@ -76,4 +78,11 @@
 }
 .bb-input-error {
 	outline: solid var(--color-red) !important;
+}
+
+[style*="--bb-control"] {
+	display: none;
+}
+.cm-active [style*="--bb-control"] {
+	display: inline;
 }
