@@ -30,6 +30,72 @@ interface LineInfo {
 	index: number;
 }
 
+// ---------------------------------------------------------------------------
+// Same-indent navigation helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the number of leading tab characters on a raw line string.
+ */
+function getIndentLevel(lineText: string, tabSize: number): number {
+	const match = lineText.match(/^(\t*)(\s*)/);
+	if (!match) return 0;
+	const tabs = match[1]!.length;
+	const spaces = match[2]!.length;
+	return Math.floor((tabs * tabSize + spaces) / tabSize);
+}
+
+/**
+ * Move the cursor to the next (direction = 1) or previous (direction = -1)
+ * line that has the same indentation level as the current cursor line.
+ * Skips blank lines. Returns true if the command was handled.
+ */
+export function moveToSameIndent(view: EditorView, direction: 1 | -1): boolean {
+	const state = view.state;
+	const doc = state.doc;
+	const tabSize = state.tabSize;
+
+	const cursorPos = state.selection.main.head;
+	const cursorLine = doc.lineAt(cursorPos);
+	const currentIndent = getIndentLevel(cursorLine.text, tabSize);
+
+	let lineNum = doc.lineAt(cursorPos).number + direction;
+
+	while (lineNum >= 1 && lineNum <= doc.lines) {
+		const line = doc.line(lineNum);
+
+		// Skip blank lines
+		if (line.text.trim() === "") {
+			lineNum += direction;
+			continue;
+		}
+
+		const lineIndent = getIndentLevel(line.text, tabSize);
+
+		if (lineIndent === currentIndent) {
+			// Move cursor to end of target line
+			view.dispatch({
+				selection: { anchor: line.to, head: line.to },
+				scrollIntoView: true,
+			});
+			return true;
+		}
+
+		// If we've gone to a lower indent level, stop searching
+		if (lineIndent < currentIndent) {
+			break;
+		}
+
+		lineNum += direction;
+	}
+
+	return false;
+}
+
+// ---------------------------------------------------------------------------
+// Bullet decoration view plugin (unchanged)
+// ---------------------------------------------------------------------------
+
 class BetterBulletsViewPlugin {
 	plugin: BetterBulletsPlugin;
 	decorations: DecorationSet;
