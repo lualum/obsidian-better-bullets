@@ -70,9 +70,9 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		});
 
 		const colgroup = table.createEl("colgroup");
-		colgroup.createEl("col", { attr: { style: "width: 16.5%" } }); // Level
-		colgroup.createEl("col", { attr: { style: "width: 16.5%" } }); // Symbol
-		colgroup.createEl("col", { attr: { style: "width: 67%" } }); // CSS
+		colgroup.createEl("col", { attr: { style: "width: 16.5%" } });
+		colgroup.createEl("col", { attr: { style: "width: 16.5%" } });
+		colgroup.createEl("col", { attr: { style: "width: 67%" } });
 
 		const thead = table.createEl("thead");
 		const headerRow = thead.createEl("tr");
@@ -296,8 +296,8 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		});
 
 		const colgroup = table.createEl("colgroup");
-		colgroup.createEl("col", { attr: { style: "width: 33%" } }); // Regex
-		colgroup.createEl("col", { attr: { style: "width: 67%" } }); // CSS
+		colgroup.createEl("col", { attr: { style: "width: 33%" } });
+		colgroup.createEl("col", { attr: { style: "width: 67%" } });
 
 		const thead = table.createEl("thead");
 		const headerRow = thead.createEl("tr");
@@ -326,13 +326,14 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			this.renderFormattingRules(page);
 		});
 
+		if (rule.styles.length <= 1) return;
 		const removeBtn = btnRow.createEl("button", {
 			text: "Remove last -",
 			cls: "bb-btn-remove",
 		});
 		removeBtn.addEventListener("click", () => {
 			const styles = this.plugin.settings.rules[ruleIndex]!.styles;
-			if (styles.length === 0) return;
+			if (styles.length <= 1) return;
 			styles.pop();
 			void this.triggerRefresh();
 			rulesContainer.remove();
@@ -397,7 +398,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		const newRule: FormattingRule = {
 			name: "New Rule",
 			matchMode: "full",
-			styles: [],
+			styles: [{ pattern: "", css: "" }],
 		};
 		this.plugin.settings.rules.push(newRule);
 		void this.triggerRefresh();
