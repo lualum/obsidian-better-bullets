@@ -44,10 +44,6 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		this.renderFormattingRules(page);
 	}
 
-	// -------------------------------------------------------------------------
-	// Hierarchy settings
-	// -------------------------------------------------------------------------
-
 	getLevelStyle(level: number): BulletType {
 		if (this.plugin.settings.hierarchy[level]) {
 			return this.plugin.settings.hierarchy[level];
@@ -154,10 +150,6 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			void this.triggerRefresh();
 		});
 	}
-
-	// -------------------------------------------------------------------------
-	// Formatting rules (unchanged)
-	// -------------------------------------------------------------------------
 
 	renderFormattingRules(page: HTMLElement) {
 		const container = page.createDiv("setting-group-no-border");
