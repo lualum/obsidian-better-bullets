@@ -28,6 +28,7 @@ interface LineInfo {
 	bullet: string;
 	text: string;
 	index: number;
+	bulletIdx: number;
 }
 
 function getIndentLevel(lineText: string, tabSize: number): number {
@@ -123,6 +124,7 @@ class BetterBulletsViewPlugin {
 					bullet: bullet!,
 					text: text ?? "",
 					index: line.from,
+					bulletIdx: line.from + indents!.length + spaces!.length,
 				};
 			}
 
@@ -137,6 +139,7 @@ class BetterBulletsViewPlugin {
 				bullet: "",
 				text: indentMatch[2] ?? "",
 				index: line.from,
+				bulletIdx: -1,
 			};
 		};
 
@@ -146,7 +149,8 @@ class BetterBulletsViewPlugin {
 			level: number,
 		) => {
 			if (!isBullet) return;
-			const bulletIdx = info.index + info.indent + info.spaces;
+
+			const bulletIdx = info.bulletIdx;
 			const textIdx = bulletIdx + info.bullet.length + 1;
 			const text = info.text;
 			const bulletSettings =
