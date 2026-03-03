@@ -9,7 +9,7 @@ Better Bullets is an Obsidian plugin that enhances the **visual hierarchy and re
 ### 1. Hierarchical Bullet Symbols
 
 <div align="center">
-  <img src="docs/hierarchy.png" alt="Hierarchical bullet symbols" width="50%">
+  <img src="docs/hierarchy.png" alt="Hierarchical bullet symbols" width="30%">
   <div><em>Bullet symbols and sizing change automatically based on nesting depth.</em></div>
 </div>
 <br>
@@ -23,7 +23,7 @@ The plugin automatically changes bullet symbols based on their relationship to o
 ### 2. Dynamic Text Formatting
 
 <div align="center">
-  <img src="docs/rule.png" alt="Dynamic Text Formatting examples" width="70%">
+  <img src="docs/rule.png" alt="Dynamic Text Formatting examples" width="50%">
   <div><em>Formatting rules in action: term/definition, importance, quotes, and year auto-marking.</em></div>
 </div>
 <br>
@@ -47,7 +47,7 @@ Text is formatted based on its position in a list and specific syntax within the
 #### Hierarchy Configuration
 
 <div align="center">
-  <img src="docs/hierarchy_setting.png" alt="Hierarchy Setting" width="70%">
+  <img src="docs/hierarchy_setting.png" alt="Hierarchy Setting" width="90%">
   <div>Hierarchy Configuration: Defines styles for each level.</div>
 </div>
 <br>
@@ -57,7 +57,7 @@ Define the bullet symbol and CSS for each indentation level. Add or remove level
 #### Formatting Rules
 
 <div align="center">
-  <img src="docs/rule_setting.png" alt="Rule Setting" width="70%">
+  <img src="docs/rule_setting.png" alt="Rule Setting" width="90%">
   <div>Rule Configuration: Uses regex to make custom formatting rules.</div>
 </div>
 <br>

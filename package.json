@@ -1,6 +1,6 @@
 {
 	"name": "better-bullets",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "Replaces bullets with easier to read en dashes & other symbols.",
 	"main": "main.js",
 	"type": "module",
