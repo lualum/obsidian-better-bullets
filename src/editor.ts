@@ -156,7 +156,9 @@ class BetterBulletsViewPlugin {
 			const bulletSettings =
 				this.plugin.settings.hierarchy[level] ??
 				this.plugin.settings.hierarchy.at(-1);
+
 			if (!bulletSettings) return;
+
 			let symbol = bulletSettings.symbol;
 			let bulletCss = bulletSettings.css;
 

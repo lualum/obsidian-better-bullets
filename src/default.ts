@@ -3,8 +3,8 @@ import { BetterBulletsSettings } from "settings";
 export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	hierarchy: [
 		{ symbol: "-", css: "" },
-		{ symbol: "->", css: "font-size: 1.2em; \nfont-weight: bold;" },
-		{ symbol: "=>", css: "font-size: 1.4em; \nfont-weight: bold;" },
+		{ symbol: "→", css: "font-size: 1.2em; \nfont-weight: bold;" },
+		{ symbol: "⇒", css: "font-size: 1.4em; \nfont-weight: bold;" },
 	],
 	rules: [
 		{
