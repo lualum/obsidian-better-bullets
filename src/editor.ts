@@ -155,7 +155,9 @@ class BetterBulletsViewPlugin {
 			const text = info.text;
 			const bulletSettings =
 				this.plugin.settings.hierarchy[level] ??
-				this.plugin.settings.hierarchy.at(-1);
+				this.plugin.settings.hierarchy[
+					this.plugin.settings.hierarchy.length - 1
+				];
 
 			if (!bulletSettings) return;
 

@@ -15,7 +15,7 @@ export default class BetterBulletsPlugin extends Plugin {
 		this.addCommand({
 			id: "move-to-same-indent-up",
 			name: "Move to previous line with same indentation",
-			editorCallback: (editor: Editor, view: MarkdownView) => {
+			editorCallback: (editor: Editor) => {
 				const cm = (editor as unknown as { cm: EditorView }).cm;
 				if (cm) moveToSameIndent(cm, -1);
 			},

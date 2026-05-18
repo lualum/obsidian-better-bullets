@@ -2,6 +2,8 @@ import { App, Modal, PluginSettingTab, Setting } from "obsidian";
 import type BetterBulletsPlugin from "./main";
 import { DEFAULT_SETTINGS } from "default";
 
+const cssPlaceholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
+
 export interface BulletType {
 	symbol: string;
 	css: string;
@@ -132,8 +134,8 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			cls: "bb-css-textarea",
 		});
 		cssText.value = level.css ?? "";
-		// eslint-disable-next-line obsidianmd/ui/sentence-case
-		cssText.placeholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
+
+		cssText.placeholder = cssPlaceholder;
 		cssText.addEventListener("input", (e) => {
 			this.getLevelStyle(index).css = (
 				e.target as HTMLTextAreaElement
@@ -226,8 +228,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			cls: "bb-textarea",
 		});
 		bulletCssText.value = rule.bulletCss ?? "";
-		// eslint-disable-next-line obsidianmd/ui/sentence-case
-		bulletCssText.placeholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
+		bulletCssText.placeholder = cssPlaceholder;
 		bulletCssText.addEventListener("input", (e) => {
 			const value = (e.target as HTMLTextAreaElement).value;
 			rule.bulletCss = value.trim() || undefined;
