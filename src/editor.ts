@@ -228,7 +228,8 @@ class BetterBulletsViewPlugin {
 						} catch {
 							continue;
 						}
-						for (const match of text.matchAll(compiledRegex)) {
+						let match: RegExpExecArray | null;
+						while ((match = compiledRegex.exec(text)) !== null) {
 							anyMatched = true;
 							if (!ruleSettings.css) continue;
 							// Merge hierarchy css as base, rule css overrides on top

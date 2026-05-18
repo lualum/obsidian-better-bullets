@@ -5,7 +5,7 @@ import { BetterBulletsSettings, BetterBulletsSettingTab } from "./settings";
 import { DEFAULT_SETTINGS } from "default";
 
 export default class BetterBulletsPlugin extends Plugin {
-	settings: BetterBulletsSettings;
+	settings: BetterBulletsSettings = DEFAULT_SETTINGS;
 
 	async onload() {
 		await this.loadSettings();
@@ -24,7 +24,7 @@ export default class BetterBulletsPlugin extends Plugin {
 		this.addCommand({
 			id: "move-to-same-indent-down",
 			name: "Move to next line with same indentation",
-			editorCallback: (editor: Editor, view: MarkdownView) => {
+			editorCallback: (editor: Editor) => {
 				const cm = (editor as unknown as { cm: EditorView }).cm;
 				if (cm) moveToSameIndent(cm, 1);
 			},
