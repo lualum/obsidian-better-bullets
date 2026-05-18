@@ -55,17 +55,17 @@
 	background-color: transparent;
 }
 
-.bb-btn-add {
-	background: var(--color-blue) !important;
-	color: white !important;
+button.bb-btn-add {
+	background: var(--color-blue);
+	color: white;
 }
-.bb-btn-add:hover {
+button.bb-btn-add:hover {
 	filter: brightness(1.15);
 }
 
-.bb-btn-remove {
-	background: var(--color-red) !important;
-	color: white !important;
+button.bb-btn-remove {
+	background: var(--color-red);
+	color: white;
 }
 .bb-btn-remove:hover {
 	filter: brightness(1.15);
@@ -76,8 +76,8 @@
 	gap: 16px;
 	margin-top: 8px;
 }
-.bb-input-error {
-	outline: solid var(--color-red) !important;
+input.bb-input-error {
+	outline: solid var(--color-red);
 }
 
 [style*="--bb-control"] {
