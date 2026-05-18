@@ -1,4 +1,4 @@
-import { BetterBulletsSettings } from "settings";
+import { BetterBulletsSettings } from "./settings";
 
 export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	hierarchy: [

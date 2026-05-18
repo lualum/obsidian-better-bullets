@@ -1,6 +1,6 @@
 import { App, Modal, PluginSettingTab, Setting } from "obsidian";
 import type BetterBulletsPlugin from "./main";
-import { DEFAULT_SETTINGS } from "default";
+import { DEFAULT_SETTINGS } from "./default";
 
 const cssPlaceholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
 
