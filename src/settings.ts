@@ -198,8 +198,12 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 	}
 
 	createRuleCard(container: HTMLElement, rule: FormattingRule) {
-		const card = container.createDiv("bb-rule-card");
-		const header = card.createDiv("bb-rule-header");
+		const card = container.createDiv("bb-rule-card bb-rule-card-foldable");
+
+		const header = card.createDiv("bb-rule-header bb-rule-header-foldable");
+
+		const chevron = header.createEl("span", { cls: "bb-rule-chevron" });
+		chevron.setText("▶");
 
 		const titleInput = header.createEl("input", {
 			type: "text",
@@ -224,7 +228,19 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			this.display();
 		});
 
-		new Setting(card)
+		const body = card.createDiv("bb-rule-body");
+
+		header.addEventListener("click", (e) => {
+			if (e.target === titleInput || e.target === deleteBtn) {
+				return;
+			}
+			const isOpen = body.hasClass("bb-rule-body--open");
+			body.toggleClass("bb-rule-body--open", !isOpen);
+			chevron.setText(isOpen ? "▶" : "▼");
+			header.toggleClass("bb-rule-header--open", !isOpen);
+		});
+
+		new Setting(body)
 			.setName("Custom bullet symbol")
 			.setDesc(
 				"Overrides hierarchy symbol. Leave empty to use hierarchy symbol.",
@@ -237,7 +253,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 				text.inputEl.classList.add("bb-setting-short");
 			});
 
-		const bulletCssSetting = new Setting(card)
+		const bulletCssSetting = new Setting(body)
 			.setName("Custom bullet CSS")
 			.setDesc(
 				"Overrides hierarchy CSS. Leave empty to use hierarchy CSS.",
@@ -253,7 +269,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			void this.triggerRefresh();
 		});
 
-		new Setting(card)
+		new Setting(body)
 			.setName("Match mode")
 			.setDesc(
 				"Full line: the pattern must match the entire bullet text. Match all: apply CSS if any pattern matches anywhere in the text.",
@@ -268,7 +284,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 					});
 			});
 
-		const patternsSection = card.createDiv("bb-rule-pattern-section");
+		const patternsSection = body.createDiv("bb-rule-pattern-section");
 		new Setting(patternsSection)
 			.setName("Patterns and styles")
 			.setDesc(

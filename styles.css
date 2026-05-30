@@ -46,13 +46,38 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+.bb-rule-header.bb-rule-header--open {
+	border-bottom: 1px solid var(--background-modifier-border);
 	margin-bottom: 12px;
 	padding-bottom: 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
 }
+
 .bb-rule-card .setting-item {
 	padding: 8px 0;
 	background-color: transparent;
+}
+
+.bb-rule-header-foldable {
+	cursor: pointer;
+	user-select: none;
+}
+
+.bb-rule-chevron {
+	margin-right: 6px;
+	font-size: 0.75em;
+	opacity: 0.6;
+}
+
+.bb-rule-body {
+	display: none;
+}
+
+.bb-rule-body.bb-rule-body--open {
+	display: block;
 }
 
 button.bb-btn-add {
