@@ -147,14 +147,20 @@ class BetterBulletsViewPlugin {
 			info: LineInfo,
 			isBullet: boolean,
 			level: number,
+			indentLevel: number,
 		) => {
 			if (!isBullet) return;
 
 			const bulletIdx = info.bulletIdx;
 			const textIdx = bulletIdx + info.bullet.length + 1;
 			const text = info.text;
+
+			const hierarchyIndex =
+				this.plugin.settings.levelType === "indent"
+					? indentLevel
+					: level;
 			const bulletSettings =
-				this.plugin.settings.hierarchy[level] ??
+				this.plugin.settings.hierarchy[hierarchyIndex] ??
 				this.plugin.settings.hierarchy[
 					this.plugin.settings.hierarchy.length - 1
 				];
@@ -339,7 +345,7 @@ class BetterBulletsViewPlugin {
 
 				const fold = analyzeFold(currLine, isBullet, info.indent);
 
-				applyModifiers(info, isBullet, fold.level);
+				applyModifiers(info, isBullet, fold.level, info.indent);
 
 				currLine = fold.end;
 				level = Math.max(level, fold.level + 1);

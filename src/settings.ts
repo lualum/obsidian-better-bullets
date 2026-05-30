@@ -9,6 +9,7 @@ export interface BulletType {
 	css: string;
 }
 
+export type LevelType = "hierarchy" | "indent";
 export type MatchMode = "full" | "any";
 
 export interface FormattingRule {
@@ -23,6 +24,7 @@ export interface FormattingRule {
 }
 
 export interface BetterBulletsSettings {
+	levelType: LevelType;
 	hierarchy: BulletType[];
 	rules: FormattingRule[];
 }
@@ -62,6 +64,22 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 	renderLevelSettings(page: HTMLElement) {
 		const container = page.createDiv("setting-group-no-border");
 		const card = container.createDiv("bb-rule-card");
+
+		new Setting(card)
+			.setName("Level type")
+			.setDesc(
+				"Changes how levels are defined. Defined as levels of children under it or indentation.",
+			)
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption("hierarchy", "Hierarchy")
+					.addOption("indent", "Indentation");
+				dropdown.setValue(this.plugin.settings.levelType);
+				dropdown.onChange((value) => {
+					this.plugin.settings.levelType = value as LevelType;
+					void this.triggerRefresh();
+				});
+			});
 
 		const table = card.createEl("table", { cls: "bb-table" });
 
