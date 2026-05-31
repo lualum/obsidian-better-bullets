@@ -122,11 +122,15 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			cls: "bb-btn-remove",
 		});
 		removeBtn.addEventListener("click", () => {
-			if (this.plugin.settings.hierarchy.length === 0) return;
+			if (this.plugin.settings.hierarchy.length <= 1) return;
 			this.plugin.settings.hierarchy.pop();
 			void this.triggerRefresh();
 			this.display();
 		});
+
+		if (this.plugin.settings.hierarchy.length <= 1) {
+			removeBtn.setAttr("disabled", "true");
+		}
 	}
 
 	createLevelRow(tbody: HTMLElement, index: number) {
