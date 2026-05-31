@@ -8,7 +8,6 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
-
         permissions:
             contents: write
             id-token: write
@@ -29,13 +28,15 @@ jobs:
             - name: Build
               run: npm run build
 
-            - name: Attest release assets
-              uses: actions/attest-build-provenance@v1
+            - name: Attest main.js
+              uses: actions/attest-build-provenance@v2
               with:
-                  subject-path: |
-                      main.js
-                      styles.css
-                      manifest.json
+                  subject-path: main.js
+
+            - name: Attest styles.css
+              uses: actions/attest-build-provenance@v2
+              with:
+                  subject-path: styles.css
 
             - name: Create Release
               uses: softprops/action-gh-release@v2
