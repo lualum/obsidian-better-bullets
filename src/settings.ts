@@ -32,6 +32,8 @@ export interface BetterBulletsSettings {
 export class BetterBulletsSettingTab extends PluginSettingTab {
 	plugin: BetterBulletsPlugin;
 
+	private openRuleIndices: Set<number> = new Set();
+
 	constructor(app: App, plugin: BetterBulletsPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
@@ -165,8 +167,8 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 	renderFormattingRules(page: HTMLElement) {
 		const container = page.createDiv("setting-group-no-border");
 
-		this.plugin.settings.rules.forEach((rule) => {
-			this.createRuleCard(container, rule);
+		this.plugin.settings.rules.forEach((rule, index) => {
+			this.createRuleCard(container, rule, index);
 		});
 
 		const btnRow = container.createDiv("bb-btn-row");
@@ -191,19 +193,35 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 						styles: r.styles.map((s) => ({ ...s })),
 					}),
 				);
+				this.openRuleIndices.clear();
 				void this.triggerRefresh();
 				this.display();
 			}).open();
 		});
 	}
 
-	createRuleCard(container: HTMLElement, rule: FormattingRule) {
+	createRuleCard(
+		container: HTMLElement,
+		rule: FormattingRule,
+		ruleIndex: number,
+	) {
 		const card = container.createDiv("bb-rule-card bb-rule-card-foldable");
 
 		const header = card.createDiv("bb-rule-header bb-rule-header-foldable");
 
 		const chevron = header.createEl("span", { cls: "bb-rule-chevron" });
-		chevron.setText("▶");
+
+		const body = card.createDiv("bb-rule-body");
+
+		// Restore fold state from the persistent set before attaching listeners.
+		const isOpen = this.openRuleIndices.has(ruleIndex);
+		if (isOpen) {
+			body.addClass("bb-rule-body--open");
+			header.addClass("bb-rule-header--open");
+			chevron.setText("▼");
+		} else {
+			chevron.setText("▶");
+		}
 
 		const titleInput = header.createEl("input", {
 			type: "text",
@@ -224,20 +242,35 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			const currentIndex = this.plugin.settings.rules.indexOf(rule);
 			if (currentIndex === -1) return;
 			this.plugin.settings.rules.splice(currentIndex, 1);
+
+			// Rebuild the open-index set: indices above the deleted one shift down by one.
+			const updated = new Set<number>();
+			for (const i of this.openRuleIndices) {
+				if (i < currentIndex) updated.add(i);
+				else if (i > currentIndex) updated.add(i - 1);
+				// i === currentIndex is dropped (the card no longer exists)
+			}
+			this.openRuleIndices = updated;
+
 			void this.triggerRefresh();
 			this.display();
 		});
-
-		const body = card.createDiv("bb-rule-body");
 
 		header.addEventListener("click", (e) => {
 			if (e.target === titleInput || e.target === deleteBtn) {
 				return;
 			}
-			const isOpen = body.hasClass("bb-rule-body--open");
-			body.toggleClass("bb-rule-body--open", !isOpen);
-			chevron.setText(isOpen ? "▶" : "▼");
-			header.toggleClass("bb-rule-header--open", !isOpen);
+			const nowOpen = !body.hasClass("bb-rule-body--open");
+			body.toggleClass("bb-rule-body--open", nowOpen);
+			chevron.setText(nowOpen ? "▼" : "▶");
+			header.toggleClass("bb-rule-header--open", nowOpen);
+
+			// Keep the persistent set in sync with the user's click.
+			if (nowOpen) {
+				this.openRuleIndices.add(ruleIndex);
+			} else {
+				this.openRuleIndices.delete(ruleIndex);
+			}
 		});
 
 		new Setting(body)

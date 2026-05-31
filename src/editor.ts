@@ -189,9 +189,8 @@ class BetterBulletsViewPlugin {
 						symbol = rule.bullet;
 					}
 					if (rule.bulletCss) {
-						// Merge rule bulletCss with hierarchy bulletCss instead of overwriting
-						bulletCss = bulletCss
-							? `${bulletCss}; ${rule.bulletCss}`
+						bulletCss = bulletSettings.css
+							? `${bulletSettings.css}; ${rule.bulletCss}`
 							: rule.bulletCss;
 					}
 					let groupIdx = textIdx;
@@ -261,8 +260,8 @@ class BetterBulletsViewPlugin {
 							symbol = rule.bullet;
 						}
 						if (rule.bulletCss) {
-							bulletCss = bulletCss
-								? `${bulletCss}; ${rule.bulletCss}`
+							bulletCss = bulletSettings.css
+								? `${bulletSettings.css}; ${rule.bulletCss}`
 								: rule.bulletCss;
 						}
 					}
