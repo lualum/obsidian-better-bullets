@@ -22,6 +22,13 @@ interface PendingDecoration {
 	decoration: Decoration;
 }
 
+interface TextStyleSpan {
+	from: number;
+	to: number;
+	css: string;
+	order: number;
+}
+
 interface LineInfo {
 	indent: number;
 	spaces: number;
@@ -37,6 +44,12 @@ function getIndentLevel(lineText: string, tabSize: number): number {
 	const tabs = match[1]!.length;
 	const spaces = match[2]!.length;
 	return Math.floor((tabs * tabSize + spaces) / tabSize);
+}
+
+function combineCss(...cssBlocks: (string | undefined)[]): string {
+	const span = document.createElement("span");
+	span.style.cssText = cssBlocks.filter(Boolean).join("; ");
+	return span.style.cssText;
 }
 
 export function moveToSameIndent(view: EditorView, direction: 1 | -1): boolean {
@@ -170,7 +183,18 @@ class BetterBulletsViewPlugin {
 			let symbol = bulletSettings.symbol;
 			let bulletCss = bulletSettings.css;
 
-			const ruleDecorationsBefore = pendingDecorations.length;
+			const textStyleSpans: TextStyleSpan[] = [];
+			let styleOrder = 0;
+
+			const addTextStyleSpan = (from: number, to: number, css: string) => {
+				if (!css || from >= to) return;
+				textStyleSpans.push({
+					from,
+					to,
+					css,
+					order: styleOrder++,
+				});
+			};
 
 			for (const rule of this.plugin.settings.rules) {
 				const matchMode = rule.matchMode;
@@ -189,9 +213,7 @@ class BetterBulletsViewPlugin {
 						symbol = rule.bullet;
 					}
 					if (rule.bulletCss) {
-						bulletCss = bulletSettings.css
-							? `${bulletSettings.css}; ${rule.bulletCss}`
-							: rule.bulletCss;
+						bulletCss = combineCss(bulletSettings.css, rule.bulletCss);
 					}
 					let groupIdx = textIdx;
 					for (let i = 0; i < rule.styles.length; i++) {
@@ -202,22 +224,11 @@ class BetterBulletsViewPlugin {
 							groupIdx += groupText.length;
 							continue;
 						}
-						// Merge hierarchy css as base, rule css overrides on top
-						const mergedCss = [bulletSettings.css, ruleSettings.css]
-							.filter(Boolean)
-							.join("; ");
-						if (!mergedCss) {
-							groupIdx += groupText.length;
-							continue;
-						}
-						const textDecoration = Decoration.mark({
-							attributes: { style: mergedCss },
-						});
-						pendingDecorations.push({
-							from: groupIdx,
-							to: groupIdx + groupText.length,
-							decoration: textDecoration,
-						});
+						addTextStyleSpan(
+							groupIdx,
+							groupIdx + groupText.length,
+							ruleSettings.css,
+						);
 						groupIdx += groupText.length;
 					}
 				} else {
@@ -236,23 +247,14 @@ class BetterBulletsViewPlugin {
 						let match: RegExpExecArray | null;
 						while ((match = compiledRegex.exec(text)) !== null) {
 							anyMatched = true;
-							if (!ruleSettings.css) continue;
-							// Merge hierarchy css as base, rule css overrides on top
-							const mergedCss = [
-								bulletSettings.css,
+							addTextStyleSpan(
+								textIdx + match.index,
+								textIdx + match.index + match[0].length,
 								ruleSettings.css,
-							]
-								.filter(Boolean)
-								.join("; ");
-							if (!mergedCss) continue;
-							const textDecoration = Decoration.mark({
-								attributes: { style: mergedCss },
-							});
-							pendingDecorations.push({
-								from: textIdx + match.index,
-								to: textIdx + match.index + match[0].length,
-								decoration: textDecoration,
-							});
+							);
+							if (match[0].length === 0) {
+								compiledRegex.lastIndex++;
+							}
 						}
 					}
 					if (anyMatched) {
@@ -260,44 +262,37 @@ class BetterBulletsViewPlugin {
 							symbol = rule.bullet;
 						}
 						if (rule.bulletCss) {
-							bulletCss = bulletSettings.css
-								? `${bulletSettings.css}; ${rule.bulletCss}`
-								: rule.bulletCss;
+							bulletCss = combineCss(bulletSettings.css, rule.bulletCss);
 						}
 					}
 				}
 			}
 
-			// Apply base CSS only to ranges NOT already covered by a rule decoration
-			const css = bulletSettings.css;
-			if (css && text.length > 0) {
-				const ruleDecorations = pendingDecorations
-					.slice(ruleDecorationsBefore)
-					.filter(
-						(d) =>
-							d.from >= textIdx && d.to <= textIdx + text.length,
-					)
-					.sort((a, b) => a.from - b.from);
+			const lineStart = textIdx;
+			const lineEnd = textIdx + text.length;
+			const boundaries = new Set<number>([lineStart, lineEnd]);
+			for (const span of textStyleSpans) {
+				boundaries.add(Math.max(lineStart, span.from));
+				boundaries.add(Math.min(lineEnd, span.to));
+			}
+			const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
 
-				let pos = textIdx;
-				const end = textIdx + text.length;
+			for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+				const from = sortedBoundaries[i]!;
+				const to = sortedBoundaries[i + 1]!;
+				if (from >= to) continue;
 
-				for (const covered of ruleDecorations) {
-					if (pos < covered.from) {
-						pendingDecorations.push({
-							from: pos,
-							to: covered.from,
-							decoration: Decoration.mark({
-								attributes: { style: css },
-							}),
-						});
-					}
-					pos = Math.max(pos, covered.to);
-				}
-				if (pos < end) {
+				const matchingSpans = textStyleSpans
+					.filter((span) => span.from < to && span.to > from)
+					.sort((a, b) => a.order - b.order);
+				const css = combineCss(
+					bulletSettings.css,
+					...matchingSpans.map((span) => span.css),
+				);
+				if (css) {
 					pendingDecorations.push({
-						from: pos,
-						to: end,
+						from,
+						to,
 						decoration: Decoration.mark({
 							attributes: { style: css },
 						}),
