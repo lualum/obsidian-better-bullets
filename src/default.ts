@@ -2,6 +2,9 @@ import { BetterBulletsSettings } from "./settings";
 
 export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	levelType: "hierarchy",
+	bulletIndentation: "1ch",
+	bulletStructure: "2ch",
+	bulletTextGap: "1ch",
 	hierarchy: [
 		{ symbol: "-", css: "" },
 		{ symbol: "→", css: "font-size: 1.2em; \nfont-weight: bold;" },

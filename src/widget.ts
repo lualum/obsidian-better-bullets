@@ -13,10 +13,20 @@ export class BulletWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const span = document.createElement("span");
-		span.textContent = this.type.symbol;
-		span.style.cssText = this.type.style;
-		span.classList.add("bb-bullet");
-		return span;
+		const container = document.createElement("span");
+		container.style.cssText = [
+			`--bb-bullet-indentation: ${this.settings.bulletIndentation};`,
+			`--bb-bullet-structure: ${this.settings.bulletStructure};`,
+			`--bb-bullet-text-gap: ${this.settings.bulletTextGap};`,
+		].join(" ");
+		container.classList.add("bb-bullet");
+
+		const symbol = container.createEl("span", {
+			cls: "bb-bullet-symbol",
+			text: this.type.symbol,
+		});
+		symbol.style.cssText = this.type.style;
+
+		return container;
 	}
 }

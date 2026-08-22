@@ -1,5 +1,23 @@
-.bb-bullet::before {
-	content: " ";
+.bb-bullet {
+	--bb-bullet-indentation: 1ch;
+	--bb-bullet-structure: 1ch;
+	--bb-bullet-text-gap: 1ch;
+	align-items: center;
+	box-sizing: content-box;
+	display: inline-flex;
+	inline-size: max-content;
+	justify-content: center;
+	line-height: inherit;
+	margin-inline-end: var(--bb-bullet-text-gap);
+	margin-inline-start: var(--bb-bullet-indentation);
+	min-inline-size: var(--bb-bullet-structure);
+	white-space: pre;
+}
+
+.bb-bullet-symbol {
+	display: inline-block;
+	line-height: 1;
+	text-align: center;
 }
 
 .bb-setting-short {

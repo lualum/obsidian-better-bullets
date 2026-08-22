@@ -25,6 +25,9 @@ export interface FormattingRule {
 
 export interface BetterBulletsSettings {
 	levelType: LevelType;
+	bulletIndentation: string;
+	bulletStructure: string;
+	bulletTextGap: string;
 	hierarchy: BulletType[];
 	rules: FormattingRule[];
 }
@@ -45,6 +48,9 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 
 		new Setting(page).setName("Hierarchy configuration").setHeading();
 		this.renderLevelSettings(page);
+
+		new Setting(page).setName("Bullet structure").setHeading();
+		this.renderBulletStructureSettings(page);
 
 		new Setting(page).setName("Formatting rules").setHeading();
 		this.renderFormattingRules(page);
@@ -166,6 +172,63 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			).value;
 			void this.triggerRefresh();
 		});
+	}
+
+	renderBulletStructureSettings(page: HTMLElement) {
+		const container = page.createDiv("setting-group-no-border");
+		const card = container.createDiv("bb-rule-card");
+
+		new Setting(card)
+			.setName("Bullet indentation")
+			.setDesc(
+				"Target width between the bullet area's left side and the bullet.",
+			)
+			.addText((text) => {
+				text.setValue(this.plugin.settings.bulletIndentation).onChange(
+					(value) => {
+						this.plugin.settings.bulletIndentation =
+							value.trim() ||
+							DEFAULT_SETTINGS.bulletIndentation;
+						void this.triggerRefresh();
+					},
+				);
+				text.inputEl.placeholder = DEFAULT_SETTINGS.bulletIndentation;
+				text.inputEl.classList.add("bb-setting-short");
+			});
+
+		new Setting(card)
+			.setName("Bullet structure")
+			.setDesc(
+				"Target content width of the bullet-only container, excluding indentation and text gap.",
+			)
+			.addText((text) => {
+				text.setValue(this.plugin.settings.bulletStructure).onChange(
+					(value) => {
+						this.plugin.settings.bulletStructure =
+							value.trim() || DEFAULT_SETTINGS.bulletStructure;
+						void this.triggerRefresh();
+					},
+				);
+				text.inputEl.placeholder = DEFAULT_SETTINGS.bulletStructure;
+				text.inputEl.classList.add("bb-setting-short");
+			});
+
+		new Setting(card)
+			.setName("Bullet text gap")
+			.setDesc(
+				"Target width between the bullet-only container and text.",
+			)
+			.addText((text) => {
+				text.setValue(this.plugin.settings.bulletTextGap).onChange(
+					(value) => {
+						this.plugin.settings.bulletTextGap =
+							value.trim() || DEFAULT_SETTINGS.bulletTextGap;
+						void this.triggerRefresh();
+					},
+				);
+				text.inputEl.placeholder = DEFAULT_SETTINGS.bulletTextGap;
+				text.inputEl.classList.add("bb-setting-short");
+			});
 	}
 
 	renderFormattingRules(page: HTMLElement) {
@@ -293,7 +356,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		const bulletCssSetting = new Setting(body)
 			.setName("Custom bullet CSS")
 			.setDesc(
-				"Overrides hierarchy CSS. Leave empty to use hierarchy CSS.",
+				"Overrides hierarchy CSS for the bullet symbol. Spacing is controlled by the bullet structure settings.",
 			);
 		const bulletCssText = bulletCssSetting.controlEl.createEl("textarea", {
 			cls: "bb-textarea",

@@ -308,7 +308,7 @@ class BetterBulletsViewPlugin {
 			});
 			pendingDecorations.push({
 				from: bulletIdx,
-				to: bulletIdx + 1,
+				to: textIdx,
 				decoration: bulletDecoration,
 			});
 		};

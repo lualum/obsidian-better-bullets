@@ -54,6 +54,14 @@ Text is formatted based on its position in a list and specific syntax within the
 
 Define the bullet symbol and CSS for each indentation level. Add or remove levels as needed using the **Add level +** and **Remove last -** buttons.
 
+#### Bullet Structure
+
+Use the **Bullet structure** settings block to edit the three target widths used for bullet spacing:
+
+- **Bullet indentation** — the target width between the bullet area's left side and the bullet.
+- **Bullet structure** — the target content width of the bullet-only container, excluding indentation and text gap.
+- **Bullet text gap** — the target width between the bullet-only container and the bullet text.
+
 #### Formatting Rules
 
 <div align="center">
@@ -65,7 +73,7 @@ Define the bullet symbol and CSS for each indentation level. Add or remove level
 Create custom rules that match bullet text using regex patterns and apply CSS styles. Each rule supports:
 
 - **Custom bullet symbol** — overrides the hierarchy symbol for matched bullets.
-- **Custom bullet CSS** — overrides the hierarchy CSS for matched bullets.
+- **Custom bullet CSS** — overrides the hierarchy CSS for matched bullet symbols.
 - **Match mode** — either _Match full line_ (pattern must match the entire text) or _Match all_ (CSS is applied if the pattern matches anywhere in the text).
 - **Patterns and styles** — one or more regex/CSS pairs; the first matching pattern's styles are applied.
 
