@@ -53,13 +53,15 @@ function getIndentLevel(lineText: string, tabSize: number): number {
 }
 
 function combineCss(...cssBlocks: (string | undefined)[]): string {
-	const span = createEl("span");
+	const fragment = document.createDocumentFragment();
+	const span = fragment.createSpan();
 	span.style.cssText = cssBlocks.filter(Boolean).join("; ");
 	return span.style.cssText;
 }
 
 function hasCssFlag(css: string, property: string): boolean {
-	const span = createEl("span");
+	const fragment = document.createDocumentFragment();
+	const span = fragment.createSpan();
 	span.style.cssText = css;
 	return span.style.getPropertyValue(property).trim() !== "";
 }
