@@ -1,4 +1,4 @@
-import { App, Modal, PluginSettingTab, Setting } from "obsidian";
+import { App, Modal, PluginSettingTab, Setting, SettingGroup } from "obsidian";
 import type BetterBulletsPlugin from "./main";
 import { DEFAULT_SETTINGS } from "./default";
 
@@ -70,10 +70,9 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 	}
 
 	renderLevelSettings(page: HTMLElement) {
-		const container = page.createDiv("setting-group-no-border");
-		const card = container.createDiv("bb-rule-card");
+		const container = page.createDiv("bb-settings-section");
 
-		new Setting(card)
+		new Setting(container)
 			.setName("Level type")
 			.setDesc(
 				"Changes how levels are defined. Defined as levels of children under it or indentation.",
@@ -89,96 +88,69 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 				});
 			});
 
-		const table = card.createEl("table", { cls: "bb-table" });
-
-		const colgroup = table.createEl("colgroup");
-		colgroup.createEl("col", { attr: { style: "width: 16.5%" } });
-		colgroup.createEl("col", { attr: { style: "width: 16.5%" } });
-		colgroup.createEl("col", { attr: { style: "width: 67%" } });
-
-		const thead = table.createEl("thead");
-		const headerRow = thead.createEl("tr");
-		headerRow.createEl("th", { text: "Level" });
-		headerRow.createEl("th", { text: "Symbol" });
-		headerRow.createEl("th", { text: "CSS" });
-
-		const tbody = table.createEl("tbody");
 		for (let i = 0; i < this.plugin.settings.hierarchy.length; i++) {
-			this.createLevelRow(tbody, i);
+			this.createLevelSetting(container, i);
 		}
 
-		const btnRow = card.createDiv("bb-btn-row");
-
-		const addBtn = btnRow.createEl("button", {
-			text: "Add level +",
-			cls: "bb-btn-add",
-		});
-		addBtn.addEventListener("click", () => {
-			const index = this.plugin.settings.hierarchy.length;
-			const newLevel: BulletType = DEFAULT_SETTINGS.hierarchy[index]
-				? { ...DEFAULT_SETTINGS.hierarchy[index] }
-				: { symbol: "*", css: "" };
-			this.plugin.settings.hierarchy.push(newLevel);
-			void this.triggerRefresh();
-			this.display();
-		});
-
-		const removeBtn = btnRow.createEl("button", {
-			text: "Remove last -",
-			cls: "bb-btn-remove",
-		});
-		removeBtn.addEventListener("click", () => {
-			if (this.plugin.settings.hierarchy.length <= 1) return;
-			this.plugin.settings.hierarchy.pop();
-			void this.triggerRefresh();
-			this.display();
-		});
-
-		if (this.plugin.settings.hierarchy.length <= 1) {
-			removeBtn.setAttr("disabled", "true");
-		}
+		new Setting(container)
+			.addButton((button) =>
+				button
+					.setButtonText("Add level")
+					.setCta()
+					.onClick(() => {
+						const index = this.plugin.settings.hierarchy.length;
+						const newLevel: BulletType = DEFAULT_SETTINGS.hierarchy[
+							index
+						]
+							? { ...DEFAULT_SETTINGS.hierarchy[index] }
+							: { symbol: "*", css: "" };
+						this.plugin.settings.hierarchy.push(newLevel);
+						void this.triggerRefresh();
+						this.refreshSettingsTab();
+					}),
+			)
+			.addButton((button) => {
+				button.setButtonText("Remove last").onClick(() => {
+					if (this.plugin.settings.hierarchy.length <= 1) return;
+					this.plugin.settings.hierarchy.pop();
+					void this.triggerRefresh();
+					this.refreshSettingsTab();
+				});
+				button.setDisabled(this.plugin.settings.hierarchy.length <= 1);
+			});
 	}
 
-	createLevelRow(tbody: HTMLElement, index: number) {
+	createLevelSetting(container: HTMLElement, index: number) {
 		const level = this.getLevelStyle(index);
 
-		const row = tbody.createEl("tr", { cls: "bb-row" });
-
-		row.createEl("td", { text: `${index + 1}` });
-
-		const symbolCell = row.createEl("td");
-		const symbolInput = symbolCell.createEl("input", {
-			type: "text",
-			value: level.symbol,
-		});
-		symbolInput.classList.add("bb-setting-short");
-		symbolInput.addEventListener("input", (e) => {
-			this.getLevelStyle(index).symbol = (
-				e.target as HTMLInputElement
-			).value;
-			void this.triggerRefresh();
-		});
-
-		const cssCell = row.createEl("td");
-		const cssText = cssCell.createEl("textarea", {
-			cls: "bb-css-textarea",
-		});
-		cssText.value = level.css ?? "";
-
-		cssText.placeholder = cssPlaceholder;
-		cssText.addEventListener("input", (e) => {
-			this.getLevelStyle(index).css = (
-				e.target as HTMLTextAreaElement
-			).value;
-			void this.triggerRefresh();
-		});
+		new Setting(container)
+			.setName(`Level ${index + 1}`)
+			.setDesc("Bullet symbol and CSS for this level.")
+			.setClass("bb-level-setting")
+			.addText((text) => {
+				text.setPlaceholder("Symbol")
+					.setValue(level.symbol)
+					.onChange((value) => {
+						this.getLevelStyle(index).symbol = value;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-setting-short");
+			})
+			.addTextArea((text) => {
+				text.setPlaceholder(cssPlaceholder)
+					.setValue(level.css ?? "")
+					.onChange((value) => {
+						this.getLevelStyle(index).css = value;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-textarea");
+			});
 	}
 
 	renderBulletStructureSettings(page: HTMLElement) {
-		const container = page.createDiv("setting-group-no-border");
-		const card = container.createDiv("bb-rule-card");
+		const container = page.createDiv("bb-settings-section");
 
-		new Setting(card)
+		new Setting(container)
 			.setName("Bullet indentation")
 			.setDesc(
 				"Target width between the bullet area's left side and the bullet.",
@@ -196,7 +168,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 				text.inputEl.classList.add("bb-setting-short");
 			});
 
-		new Setting(card)
+		new Setting(container)
 			.setName("Bullet structure")
 			.setDesc(
 				"Target content width of the bullet-only container, excluding indentation and text gap.",
@@ -213,7 +185,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 				text.inputEl.classList.add("bb-setting-short");
 			});
 
-		new Setting(card)
+		new Setting(container)
 			.setName("Bullet text gap")
 			.setDesc(
 				"Target width between the bullet-only container and text.",
@@ -232,39 +204,34 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 	}
 
 	renderFormattingRules(page: HTMLElement) {
-		const container = page.createDiv("setting-group-no-border");
+		const container = page.createDiv("bb-settings-section");
 
 		this.plugin.settings.rules.forEach((rule, index) => {
 			this.createRuleCard(container, rule, index);
 		});
 
-		const btnRow = container.createDiv("bb-btn-row");
-
-		const addBtn = btnRow.createEl("button", {
-			text: "Add rule +",
-			cls: "bb-btn-add",
-		});
-		addBtn.addEventListener("click", () => {
-			this.addNewRule();
-		});
-
-		const resetBtn = btnRow.createEl("button", {
-			text: "Reset to defaults",
-			cls: "bb-btn-remove",
-		});
-		resetBtn.addEventListener("click", () => {
-			new ConfirmResetModal(this.app, () => {
-				this.plugin.settings.rules = DEFAULT_SETTINGS.rules.map(
-					(r) => ({
-						...r,
-						styles: r.styles.map((s) => ({ ...s })),
-					}),
-				);
-				this.openRuleIndices.clear();
-				void this.triggerRefresh();
-				this.display();
-			}).open();
-		});
+		new Setting(container)
+			.addButton((button) =>
+				button
+					.setButtonText("Add rule")
+					.setCta()
+					.onClick(() => this.addNewRule()),
+			)
+			.addButton((button) =>
+				button.setButtonText("Reset to defaults").onClick(() => {
+					new ConfirmResetModal(this.app, () => {
+						this.plugin.settings.rules = DEFAULT_SETTINGS.rules.map(
+							(r) => ({
+								...r,
+								styles: r.styles.map((s) => ({ ...s })),
+							}),
+						);
+						this.openRuleIndices.clear();
+						void this.triggerRefresh();
+						this.refreshSettingsTab();
+					}).open();
+				}),
+			);
 	}
 
 	createRuleCard(
@@ -272,73 +239,71 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		rule: FormattingRule,
 		ruleIndex: number,
 	) {
-		const card = container.createDiv("bb-rule-card bb-rule-card-foldable");
-
-		const header = card.createDiv("bb-rule-header bb-rule-header-foldable");
-
-		const chevron = header.createEl("span", { cls: "bb-rule-chevron" });
-
-		const body = card.createDiv("bb-rule-body");
-
-		// Restore fold state from the persistent set before attaching listeners.
 		const isOpen = this.openRuleIndices.has(ruleIndex);
+		let body!: HTMLElement;
+
+		new SettingGroup(container)
+			.setHeading(rule.name || "Rule")
+			.addExtraButton((button) =>
+				button
+					.setIcon(isOpen ? "chevron-down" : "chevron-right")
+					.setTooltip(isOpen ? "Hide rule" : "Edit rule")
+					.onClick(() => {
+						const nowOpen = !body.hasClass("bb-rule-body--open");
+						body.toggleClass("bb-rule-body--open", nowOpen);
+						button.setIcon(
+							nowOpen ? "chevron-down" : "chevron-right",
+						);
+						button.setTooltip(nowOpen ? "Hide rule" : "Edit rule");
+
+						if (nowOpen) {
+							this.openRuleIndices.add(ruleIndex);
+						} else {
+							this.openRuleIndices.delete(ruleIndex);
+						}
+					}),
+			)
+			.addExtraButton((button) =>
+				button
+					.setIcon("trash")
+					.setTooltip("Delete rule")
+					.onClick(() => {
+						const currentIndex =
+							this.plugin.settings.rules.indexOf(rule);
+						if (currentIndex === -1) return;
+						this.plugin.settings.rules.splice(currentIndex, 1);
+
+						const updated = new Set<number>();
+						for (const i of this.openRuleIndices) {
+							if (i < currentIndex) updated.add(i);
+							else if (i > currentIndex) updated.add(i - 1);
+						}
+						this.openRuleIndices = updated;
+
+						void this.triggerRefresh();
+						this.refreshSettingsTab();
+					}),
+			);
+
+		body = container.createDiv("bb-rule-body");
 		if (isOpen) {
 			body.addClass("bb-rule-body--open");
-			header.addClass("bb-rule-header--open");
-			chevron.setText("▼");
-		} else {
-			chevron.setText("▶");
 		}
 
-		const titleInput = header.createEl("input", {
-			type: "text",
-			value: rule.name || "Rule",
-			cls: "bb-rule-title bb-rule-name",
-		});
-		titleInput.placeholder = "Rule name";
-		titleInput.addEventListener("input", (e) => {
-			rule.name = (e.target as HTMLInputElement).value;
-			void this.triggerRefresh();
-		});
-
-		const deleteBtn = header.createEl("button", {
-			text: "Delete",
-			cls: "bb-btn-remove",
-		});
-		deleteBtn.addEventListener("click", () => {
-			const currentIndex = this.plugin.settings.rules.indexOf(rule);
-			if (currentIndex === -1) return;
-			this.plugin.settings.rules.splice(currentIndex, 1);
-
-			// Rebuild the open-index set: indices above the deleted one shift down by one.
-			const updated = new Set<number>();
-			for (const i of this.openRuleIndices) {
-				if (i < currentIndex) updated.add(i);
-				else if (i > currentIndex) updated.add(i - 1);
-				// i === currentIndex is dropped (the card no longer exists)
-			}
-			this.openRuleIndices = updated;
-
-			void this.triggerRefresh();
-			this.display();
-		});
-
-		header.addEventListener("click", (e) => {
-			if (e.target === titleInput || e.target === deleteBtn) {
-				return;
-			}
-			const nowOpen = !body.hasClass("bb-rule-body--open");
-			body.toggleClass("bb-rule-body--open", nowOpen);
-			chevron.setText(nowOpen ? "▼" : "▶");
-			header.toggleClass("bb-rule-header--open", nowOpen);
-
-			// Keep the persistent set in sync with the user's click.
-			if (nowOpen) {
-				this.openRuleIndices.add(ruleIndex);
-			} else {
-				this.openRuleIndices.delete(ruleIndex);
-			}
-		});
+		new Setting(body)
+			.setName("Rule name")
+			.addText((text) => {
+				text.setPlaceholder("Rule name")
+					.setValue(rule.name || "Rule")
+					.onChange((value) => {
+						rule.name = value;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-rule-title");
+				text.inputEl.addEventListener("blur", () => {
+					this.refreshSettingsTab();
+				});
+			});
 
 		new Setting(body)
 			.setName("Custom bullet symbol")
@@ -353,21 +318,20 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 				text.inputEl.classList.add("bb-setting-short");
 			});
 
-		const bulletCssSetting = new Setting(body)
+		new Setting(body)
 			.setName("Custom bullet CSS")
 			.setDesc(
 				"Overrides hierarchy CSS for the bullet symbol. Spacing is controlled by the bullet structure settings.",
-			);
-		const bulletCssText = bulletCssSetting.controlEl.createEl("textarea", {
-			cls: "bb-textarea",
-		});
-		bulletCssText.value = rule.bulletCss ?? "";
-		bulletCssText.placeholder = cssPlaceholder;
-		bulletCssText.addEventListener("input", (e) => {
-			const value = (e.target as HTMLTextAreaElement).value;
-			rule.bulletCss = value.trim() || undefined;
-			void this.triggerRefresh();
-		});
+			)
+			.addTextArea((text) => {
+				text.setPlaceholder(cssPlaceholder)
+					.setValue(rule.bulletCss ?? "")
+					.onChange((value) => {
+						rule.bulletCss = value.trim() || undefined;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-textarea");
+			});
 
 		new Setting(body)
 			.setName("Match mode")
@@ -384,87 +348,87 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 					});
 			});
 
-		const patternsSection = body.createDiv("bb-rule-pattern-section");
-		new Setting(patternsSection)
+		new Setting(body)
 			.setName("Patterns and styles")
 			.setDesc(
 				"Each pattern is a regex matched against the bullet text. The first matching pattern's CSS is applied.",
 			);
 
-		this.renderPatternsTable(patternsSection, rule);
+		this.renderPatternsTable(body, rule);
 	}
 
 	renderPatternsTable(container: HTMLElement, rule: FormattingRule) {
-		const table = container.createEl("table", {
-			cls: "bb-table",
+		rule.styles.forEach((styleConfig, index) => {
+			this.createPatternSetting(container, rule, styleConfig, index);
 		});
 
-		const colgroup = table.createEl("colgroup");
-		colgroup.createEl("col", { attr: { style: "width: 33%" } });
-		colgroup.createEl("col", { attr: { style: "width: 67%" } });
-
-		const thead = table.createEl("thead");
-		const headerRow = thead.createEl("tr");
-		headerRow.createEl("th", { text: "Regex" });
-		headerRow.createEl("th", { text: "CSS" });
-
-		const tbody = table.createEl("tbody");
-
-		rule.styles.forEach((styleConfig) => {
-			this.createPatternRow(tbody, rule, styleConfig);
-		});
-
-		const btnRow = container.createDiv("bb-btn-row");
-
-		const addBtn = btnRow.createEl("button", {
-			text: "Add pattern +",
-			cls: "bb-btn-add",
-		});
-
-		addBtn.addEventListener("click", () => {
-			const currentRuleIndex = this.plugin.settings.rules.indexOf(rule);
-			if (currentRuleIndex === -1) return;
-			this.plugin.settings.rules[currentRuleIndex]!.styles.push({
-				pattern: "",
-				css: "",
+		new Setting(container)
+			.addButton((button) =>
+				button
+					.setButtonText("Add pattern")
+					.setCta()
+					.onClick(() => {
+						const currentRuleIndex =
+							this.plugin.settings.rules.indexOf(rule);
+						if (currentRuleIndex === -1) return;
+						this.plugin.settings.rules[
+							currentRuleIndex
+						]!.styles.push({
+							pattern: "",
+							css: "",
+						});
+						void this.triggerRefresh();
+						this.refreshSettingsTab();
+					}),
+			)
+			.addButton((button) => {
+				button.setButtonText("Remove last").onClick(() => {
+					const currentRuleIndex =
+						this.plugin.settings.rules.indexOf(rule);
+					if (currentRuleIndex === -1) return;
+					const styles =
+						this.plugin.settings.rules[currentRuleIndex]!.styles;
+					if (styles.length <= 1) return;
+					styles.pop();
+					void this.triggerRefresh();
+					this.refreshSettingsTab();
+				});
+				button.setDisabled(rule.styles.length <= 1);
 			});
-			void this.triggerRefresh();
-			this.display();
-		});
-
-		if (rule.styles.length > 1) {
-			const removeBtn = btnRow.createEl("button", {
-				text: "Remove last -",
-				cls: "bb-btn-remove",
-			});
-			removeBtn.addEventListener("click", () => {
-				const currentRuleIndex =
-					this.plugin.settings.rules.indexOf(rule);
-				if (currentRuleIndex === -1) return;
-				const styles =
-					this.plugin.settings.rules[currentRuleIndex]!.styles;
-				if (styles.length <= 1) return;
-				styles.pop();
-				void this.triggerRefresh();
-				this.display();
-			});
-		}
 	}
 
-	createPatternRow(
-		tbody: HTMLElement,
+	createPatternSetting(
+		container: HTMLElement,
 		rule: FormattingRule,
 		styleConfig: { pattern: string; css: string },
+		index: number,
 	) {
-		const row = tbody.createEl("tr", { cls: "bb-row" });
+		let patternInput: HTMLInputElement;
 
-		const patternCell = row.createEl("td");
-		const patternInput = patternCell.createEl("input", {
-			type: "text",
-			cls: "bb-rule-title",
-		});
-		patternInput.value = styleConfig.pattern;
-		patternInput.placeholder = "Pattern…";
+		new Setting(container)
+			.setName(`Pattern ${index + 1}`)
+			.setDesc("Regex and CSS for this text segment.")
+			.setClass("bb-pattern-setting")
+			.addText((text) => {
+				text.setPlaceholder("Regex")
+					.setValue(styleConfig.pattern)
+					.onChange((value) => {
+						validatePattern(value);
+						styleConfig.pattern = value;
+						void this.triggerRefresh();
+					});
+				patternInput = text.inputEl;
+				text.inputEl.classList.add("bb-pattern-input");
+			})
+			.addTextArea((text) => {
+				text.setPlaceholder("CSS styles")
+					.setValue(styleConfig.css)
+					.onChange((value) => {
+						styleConfig.css = value;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-textarea");
+			});
 
 		const validatePattern = (value: string) => {
 			if (!value) {
@@ -483,21 +447,6 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		};
 
 		validatePattern(styleConfig.pattern);
-		patternInput.addEventListener("input", (e) => {
-			const value = (e.target as HTMLInputElement).value;
-			validatePattern(value);
-			styleConfig.pattern = value;
-			void this.triggerRefresh();
-		});
-
-		const cssCell = row.createEl("td");
-		const cssInput = cssCell.createEl("textarea");
-		cssInput.value = styleConfig.css;
-		cssInput.placeholder = "CSS styles…";
-		cssInput.addEventListener("input", (e) => {
-			styleConfig.css = (e.target as HTMLTextAreaElement).value;
-			void this.triggerRefresh();
-		});
 	}
 
 	addNewRule() {
@@ -508,12 +457,24 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		};
 		this.plugin.settings.rules.push(newRule);
 		void this.triggerRefresh();
-		this.display();
+		this.refreshSettingsTab();
 	}
 
 	async triggerRefresh() {
 		await this.plugin.saveSettings();
 		this.plugin.refreshEditors();
+	}
+
+	private refreshSettingsTab() {
+		const tab = this as BetterBulletsSettingTab & {
+			update?: () => void;
+		};
+
+		if (tab.update) {
+			tab.update();
+		} else {
+			this.display();
+		}
 	}
 }
 
@@ -538,7 +499,7 @@ class ConfirmResetModal extends Modal {
 
 		const confirmBtn = btnRow.createEl("button", {
 			text: "Reset",
-			cls: "bb-btn-remove",
+			cls: "mod-warning",
 		});
 		confirmBtn.addEventListener("click", () => {
 			this.onConfirm();

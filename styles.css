@@ -21,89 +21,26 @@
 }
 
 .bb-setting-short {
-	width: 50px;
+	width: 5em;
 	text-align: center;
 }
-.bb-table {
-	width: 100%;
-	border-collapse: collapse;
-	background: var(--background-secondary);
-	border-radius: 8px;
-	overflow: hidden;
-}
-.bb-table th {
-	padding: 8px 10px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	font-weight: normal;
-}
-.bb-table td {
-	padding: 8px 10px;
-	text-align: center;
-}
-.bb-table td textarea,
+
 .bb-textarea {
 	box-sizing: border-box;
-	width: 100%;
-	min-height: 7em;
+	min-height: 6.5em;
+	min-width: min(32em, 100%);
 	resize: vertical;
 	overflow: auto;
 }
-.bb-table tbody tr:hover {
-	background: var(--background-modifier-hover);
-}
-.bb-row {
-	vertical-align: top;
+
+.bb-settings-section {
+	margin-bottom: var(--size-4-8);
 }
 
-.bb-rule-card {
-	background: var(--background-secondary);
-	border-radius: 8px;
-	padding: 10px 12px;
-	margin-bottom: 10px;
-}
-.bb-rule-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 8px;
-	margin-bottom: 0;
-	padding-bottom: 0;
-}
-
-.bb-rule-header.bb-rule-header--open {
-	border-bottom: 1px solid var(--background-modifier-border);
-	margin-bottom: 8px;
-	padding-bottom: 8px;
-}
-
-.bb-rule-card .setting-item {
-	padding: 6px 0;
-	background-color: transparent;
-}
-
-.bb-rule-header-foldable {
-	cursor: pointer;
-	user-select: none;
-}
-
-.bb-rule-chevron {
-	font-size: 0.75em;
-	opacity: 0.6;
-}
-
-.bb-rule-title {
-	width: 100%;
-}
-
-.bb-rule-name {
-	flex: 0 1 220px;
-	max-width: 240px;
-	min-width: 120px;
-	text-align: center;
-}
-
-.bb-rule-header .bb-rule-name {
-	font-weight: 600;
+.bb-level-setting .setting-item-control,
+.bb-pattern-setting .setting-item-control {
+	align-items: flex-start;
+	flex-wrap: wrap;
 }
 
 .bb-rule-body {
@@ -114,27 +51,11 @@
 	display: block;
 }
 
-button.bb-btn-add {
-	background: var(--color-blue);
-	color: white;
-}
-button.bb-btn-add:hover {
-	filter: brightness(1.15);
+.bb-rule-title,
+.bb-pattern-input {
+	min-width: min(16em, 100%);
 }
 
-button.bb-btn-remove {
-	background: var(--color-red);
-	color: white;
-}
-.bb-btn-remove:hover {
-	filter: brightness(1.15);
-}
-
-.bb-btn-row {
-	display: flex;
-	gap: 8px;
-	margin-top: 8px;
-}
 input.bb-input-error {
 	outline: solid var(--color-red);
 }
