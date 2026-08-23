@@ -13,7 +13,7 @@ export class BulletWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const container = createEl("span");
+		const container = createSpan();
 		container.style.cssText = [
 			`--bb-bullet-indentation: ${this.settings.bulletIndentation};`,
 			`--bb-bullet-structure: ${this.settings.bulletStructure};`,
@@ -29,7 +29,7 @@ export class BulletWidget extends WidgetType {
 			this.type.isParent ? "bb-bullet--parent" : "bb-bullet--leaf",
 		);
 
-		const symbol = container.createEl("span", {
+		const symbol = container.createSpan({
 			cls: "bb-bullet-symbol",
 			text: this.type.symbol,
 		});
