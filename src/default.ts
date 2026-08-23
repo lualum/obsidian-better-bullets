@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	],
 	rules: [
 		{
-			name: "Colon Parents Number Children",
+			name: "Numbered Lists",
 			matchMode: "full",
 			styles: [
 				{

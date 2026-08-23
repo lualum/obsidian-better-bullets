@@ -28,24 +28,25 @@
 	width: 100%;
 	border-collapse: collapse;
 	background: var(--background-secondary);
-	border-radius: 10px;
+	border-radius: 8px;
 	overflow: hidden;
 }
 .bb-table th {
-	padding: 12px;
+	padding: 8px 10px;
 	border-bottom: 1px solid var(--background-modifier-border);
 	font-weight: normal;
 }
 .bb-table td {
-	padding: 12px;
+	padding: 8px 10px;
 	text-align: center;
 }
 .bb-table td textarea,
 .bb-textarea {
+	box-sizing: border-box;
 	width: 100%;
-	height: 6em;
-	resize: none;
-	overflow: hidden;
+	min-height: 7em;
+	resize: vertical;
+	overflow: auto;
 }
 .bb-table tbody tr:hover {
 	background: var(--background-modifier-hover);
@@ -56,26 +57,27 @@
 
 .bb-rule-card {
 	background: var(--background-secondary);
-	border-radius: 10px;
-	padding: 16px;
-	margin-bottom: 16px;
+	border-radius: 8px;
+	padding: 10px 12px;
+	margin-bottom: 10px;
 }
 .bb-rule-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	gap: 8px;
 	margin-bottom: 0;
 	padding-bottom: 0;
 }
 
 .bb-rule-header.bb-rule-header--open {
 	border-bottom: 1px solid var(--background-modifier-border);
-	margin-bottom: 12px;
-	padding-bottom: 12px;
+	margin-bottom: 8px;
+	padding-bottom: 8px;
 }
 
 .bb-rule-card .setting-item {
-	padding: 8px 0;
+	padding: 6px 0;
 	background-color: transparent;
 }
 
@@ -85,9 +87,23 @@
 }
 
 .bb-rule-chevron {
-	margin-right: 6px;
 	font-size: 0.75em;
 	opacity: 0.6;
+}
+
+.bb-rule-title {
+	width: 100%;
+}
+
+.bb-rule-name {
+	flex: 0 1 220px;
+	max-width: 240px;
+	min-width: 120px;
+	text-align: center;
+}
+
+.bb-rule-header .bb-rule-name {
+	font-weight: 600;
 }
 
 .bb-rule-body {
@@ -116,7 +132,7 @@ button.bb-btn-remove {
 
 .bb-btn-row {
 	display: flex;
-	gap: 16px;
+	gap: 8px;
 	margin-top: 8px;
 }
 input.bb-input-error {

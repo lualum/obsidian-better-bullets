@@ -293,7 +293,7 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 		const titleInput = header.createEl("input", {
 			type: "text",
 			value: rule.name || "Rule",
-			cls: "bb-rule-title",
+			cls: "bb-rule-title bb-rule-name",
 		});
 		titleInput.placeholder = "Rule name";
 		titleInput.addEventListener("input", (e) => {
