@@ -13,7 +13,7 @@ export class BulletWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const container = document.createElement("span");
+		const container = createEl("span");
 		container.style.cssText = [
 			`--bb-bullet-indentation: ${this.settings.bulletIndentation};`,
 			`--bb-bullet-structure: ${this.settings.bulletStructure};`,
