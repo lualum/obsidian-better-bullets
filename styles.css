@@ -8,9 +8,9 @@
 	inline-size: max-content;
 	justify-content: center;
 	line-height: inherit;
-	margin-inline-end: var(--bb-bullet-text-gap);
 	margin-inline-start: var(--bb-bullet-indentation);
 	min-inline-size: var(--bb-bullet-structure);
+	padding-inline-end: var(--bb-bullet-text-gap);
 	white-space: pre;
 }
 
