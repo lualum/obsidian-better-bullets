@@ -2,6 +2,18 @@ import { App, Modal, PluginSettingTab, Setting, SettingGroup } from "obsidian";
 import type BetterBulletsPlugin from "./main";
 import { DEFAULT_SETTINGS } from "./default";
 
+interface DeclarativeSettingTabBase {
+	app: App;
+	containerEl: HTMLElement;
+	hide(): void;
+	update?: () => void;
+}
+
+const DeclarativePluginSettingTab = PluginSettingTab as unknown as new (
+	app: App,
+	plugin: BetterBulletsPlugin,
+) => DeclarativeSettingTabBase;
+
 const cssPlaceholder = "e.g. \n\nfont-size: 1em; \ncolor: red;";
 
 export interface BulletType {
@@ -14,6 +26,7 @@ export type MatchMode = "full" | "any";
 
 export interface FormattingRule {
 	name: string;
+	description?: string;
 	matchMode: MatchMode;
 	styles: {
 		pattern: string;
@@ -71,7 +84,7 @@ interface SettingDefinitionPage {
 	items: SettingDefinition[];
 }
 
-export class BetterBulletsSettingTab extends PluginSettingTab {
+export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 	plugin: BetterBulletsPlugin;
 
 	private openRuleIndices: Set<number> = new Set();
@@ -93,21 +106,14 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 						render: (setting) => this.renderLevelTypeSetting(setting),
 					},
 					{
-						type: "list",
-						heading: "Hierarchy levels",
-						emptyState: "No hierarchy levels configured.",
-						addItem: {
-							name: "Add level",
-							action: () => this.addLevel(),
-						},
-						onDelete: (index) => this.deleteLevel(index),
-						items: this.plugin.settings.hierarchy.map((_, index) => ({
-							name: `Level ${index + 1}`,
-							desc: "Bullet symbol and CSS for this level.",
-							render: (setting) =>
-								this.renderLevelSetting(setting, index),
-						})),
+						name: "Add level",
+						action: () => this.addLevel(),
 					},
+					...this.plugin.settings.hierarchy.map((_, index) => ({
+						type: "page" as const,
+						name: `Level ${index + 1}`,
+						items: this.getLevelSettingDefinitions(index),
+					})),
 				],
 			},
 			{
@@ -149,26 +155,14 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 					...this.plugin.settings.rules.map((rule, index) => ({
 						type: "page" as const,
 						name: rule.name || `Rule ${index + 1}`,
-						desc: "Regex patterns, CSS, and bullet overrides.",
+						desc:
+							rule.description ||
+							"Regex patterns, CSS, and bullet overrides.",
 						items: this.getRuleSettingDefinitions(rule, index),
 					})),
 				],
 			},
 		];
-	}
-
-	display(): void {
-		const { containerEl: page } = this;
-		page.empty();
-
-		new Setting(page).setName("Hierarchy configuration").setHeading();
-		this.renderLevelSettings(page);
-
-		new Setting(page).setName("Bullet structure").setHeading();
-		this.renderBulletStructureSettings(page);
-
-		new Setting(page).setName("Formatting rules").setHeading();
-		this.renderFormattingRules(page);
 	}
 
 	getLevelStyle(level: number): BulletType {
@@ -252,7 +246,6 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 
 		setting
 			.setName(`Level ${index + 1}`)
-			.setDesc("Bullet symbol and CSS for this level.")
 			.setClass("bb-level-setting")
 			.addText((text) => {
 				text.setPlaceholder("Symbol")
@@ -263,6 +256,57 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 					});
 				text.inputEl.classList.add("bb-setting-short");
 			})
+			.addTextArea((text) => {
+				text.setPlaceholder(cssPlaceholder)
+					.setValue(level.css ?? "")
+					.onChange((value) => {
+						this.getLevelStyle(index).css = value;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-textarea");
+			});
+	}
+
+	private getLevelSettingDefinitions(index: number): SettingDefinition[] {
+		return [
+			{
+				name: "Bullet symbol",
+				render: (setting) => this.renderLevelSymbolSetting(setting, index),
+			},
+			{
+				name: "Bullet CSS",
+				render: (setting) => this.renderLevelCssSetting(setting, index),
+			},
+			{
+				name: "Delete level",
+				action: () => this.deleteLevel(index),
+			},
+		];
+	}
+
+	private renderLevelSymbolSetting(setting: Setting, index: number) {
+		const level = this.getLevelStyle(index);
+
+		setting
+			.setName("Bullet symbol")
+			.setClass("bb-level-setting")
+			.addText((text) => {
+				text.setPlaceholder("Symbol")
+					.setValue(level.symbol)
+					.onChange((value) => {
+						this.getLevelStyle(index).symbol = value;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-setting-short");
+			});
+	}
+
+	private renderLevelCssSetting(setting: Setting, index: number) {
+		const level = this.getLevelStyle(index);
+
+		setting
+			.setName("Bullet CSS")
+			.setClass("bb-level-setting")
 			.addTextArea((text) => {
 				text.setPlaceholder(cssPlaceholder)
 					.setValue(level.css ?? "")
@@ -383,6 +427,11 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 				render: (setting) => this.renderRuleNameSetting(setting, rule),
 			},
 			{
+				name: "Description",
+				render: (setting) =>
+					this.renderRuleDescriptionSetting(setting, rule),
+			},
+			{
 				name: "Custom bullet symbol",
 				desc: "Overrides hierarchy symbol. Leave empty to use hierarchy symbol.",
 				render: (setting) => this.renderRuleBulletSetting(setting, rule),
@@ -493,6 +542,21 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(body)
+			.setName("Description")
+			.addTextArea((text) => {
+				text.setPlaceholder("What this formatting rule is for")
+					.setValue(rule.description ?? "")
+					.onChange((value) => {
+						rule.description = value.trim() || undefined;
+						void this.triggerRefresh();
+					});
+				text.inputEl.classList.add("bb-textarea");
+				text.inputEl.addEventListener("blur", () => {
+					this.refreshSettingsTab();
+				});
+			});
+
+		new Setting(body)
 			.setName("Custom bullet symbol")
 			.setDesc(
 				"Overrides hierarchy symbol. Leave empty to use hierarchy symbol.",
@@ -553,6 +617,24 @@ export class BetterBulletsSettingTab extends PluginSettingTab {
 					void this.triggerRefresh();
 				});
 			text.inputEl.classList.add("bb-rule-title");
+			text.inputEl.addEventListener("blur", () => {
+				this.refreshSettingsTab();
+			});
+		});
+	}
+
+	private renderRuleDescriptionSetting(
+		setting: Setting,
+		rule: FormattingRule,
+	) {
+		setting.setName("Description").addTextArea((text) => {
+			text.setPlaceholder("What this formatting rule is for")
+				.setValue(rule.description ?? "")
+				.onChange((value) => {
+					rule.description = value.trim() || undefined;
+					void this.triggerRefresh();
+				});
+			text.inputEl.classList.add("bb-textarea");
 			text.inputEl.addEventListener("blur", () => {
 				this.refreshSettingsTab();
 			});

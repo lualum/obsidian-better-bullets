@@ -1,6 +1,7 @@
 import type { EditorView } from "@codemirror/view";
 import { bulletReplacementPlugin, moveToSameIndent } from "./editor";
 import { Editor, MarkdownView, Plugin } from "obsidian";
+import type { PluginSettingTab } from "obsidian";
 import { BetterBulletsSettings, BetterBulletsSettingTab } from "./settings";
 import { DEFAULT_SETTINGS } from "./default";
 
@@ -11,7 +12,12 @@ export default class BetterBulletsPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.registerEditorExtension([bulletReplacementPlugin(this)]);
-		this.addSettingTab(new BetterBulletsSettingTab(this.app, this));
+		this.addSettingTab(
+			new BetterBulletsSettingTab(
+				this.app,
+				this,
+			) as unknown as PluginSettingTab,
+		);
 		this.addCommand({
 			id: "move-to-same-indent-up",
 			name: "Move to previous line with same indentation",

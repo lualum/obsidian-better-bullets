@@ -13,6 +13,8 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	rules: [
 		{
 			name: "Numbered Lists",
+			description:
+				"Treat bullets ending with a colon as parents for numbered child lists.",
 			matchMode: "full",
 			styles: [
 				{
@@ -23,6 +25,8 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Note Labels",
+			description:
+				"Highlight bullets that begin with Note: and italicize the following text.",
 			matchMode: "full",
 			styles: [
 				{
@@ -38,6 +42,8 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Definitions",
+			description:
+				"Style definition terms before a vertical bar as bold labels and italicize the definition text.",
 			matchMode: "full",
 			styles: [
 				{
@@ -57,6 +63,8 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Important Label",
+			description:
+				"Emphasize important bullets and hide the control marker unless the line is active.",
 			matchMode: "full",
 			styles: [
 				{
@@ -72,6 +80,7 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Parenthetical Text",
+			description: "Italicize text enclosed in parentheses.",
 			matchMode: "any",
 			styles: [
 				{
@@ -82,6 +91,7 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Years",
+			description: "Underline four-digit years wherever they appear.",
 			matchMode: "any",
 			styles: [
 				{
@@ -92,6 +102,7 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Quotes",
+			description: "Italicize text enclosed in straight or curly quotes.",
 			matchMode: "any",
 			styles: [
 				{
@@ -102,6 +113,8 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 		},
 		{
 			name: "Examples",
+			description:
+				"Italicize example bullets that begin with the ex. prefix.",
 			matchMode: "full",
 			styles: [
 				{
