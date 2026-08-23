@@ -20,6 +20,10 @@ The plugin automatically changes bullet symbols based on their relationship to o
 - **Parent (Level 1):** Uses the `->` symbol.
 - **Leaf (Level 0):** Uses the standard `-` symbol.
 
+Unordered lists using `-`, `*`, or `+` and ordered lists using markers like `1.` or `1)` are supported. Ordered lists keep their source marker by default, while formatting rules can still override the displayed marker.
+
+The default `Colon Parents Number Children` rule matches parent bullets ending in `:` and renders their immediate child bullets as a numbered list starting at `1.`. The numbering applies only one nesting level deeper, so grandchildren keep their normal markers unless their own parent matches a numbering rule.
+
 ### 2. Dynamic Text Formatting
 
 <div align="center">
@@ -41,6 +45,10 @@ Text is formatted based on its position in a list and specific syntax within the
 - **Quotes:** Text inside `"straight"` or `"curly"` quotes is italicized anywhere in the line.
 
 > **Control characters:** The `--bb-control: 1` CSS property is a special signal used internally by Better Bullets. When applied to a matched pattern segment, that segment is hidden from the rendered output while remaining present in the Markdown source. This lets syntax markers (like the trailing `!` on important lines) act as triggers without appearing in the final note.
+
+> **Numbered children:** The `--bb-number-children: 1` CSS property is another rule signal. When a matched parent bullet sets this property, its immediate child bullets render as a numbered list.
+
+> **Bullet state flags:** Rendered bullet markers include classes and CSS custom properties for list state: `.bb-bullet--ordered`, `.bb-bullet--unordered`, `.bb-bullet--parent`, `.bb-bullet--leaf`, `--bb-ordered-list: 1`, and `--bb-parent-bullet: 1`. These can be targeted from custom snippets or combined with rule CSS to distinguish parent bullets and ordered list markers.
 
 ### 3. Settings
 
@@ -74,6 +82,7 @@ Create custom rules that match bullet text using regex patterns and apply CSS st
 
 - **Custom bullet symbol** — overrides the hierarchy symbol for matched bullets.
 - **Custom bullet CSS** — overrides the hierarchy CSS for matched bullet symbols.
+- **CSS rule signals** — use `--bb-control: 1` to hide matched source markers or `--bb-number-children: 1` to number immediate child bullets of matching parent bullets.
 - **Match mode** — either _Match full line_ (pattern must match the entire text) or _Match all_ (CSS is applied if the pattern matches anywhere in the text).
 - **Patterns and styles** — one or more regex/CSS pairs; the first matching pattern's styles are applied.
 
@@ -87,7 +96,7 @@ Rules can be added, deleted, and reordered. Clicking **Reset to defaults** will 
 
 1. Download latest release, unzip, and drag to the `.obsidian/plugins` folder.
 2. Enable the plugin in settings.
-3. Start typing bullet points using `-`, `*`, or `+`.
+3. Start typing bullet points using `-`, `*`, `+`, `1.`, or `1)`.
 
 ## License
 

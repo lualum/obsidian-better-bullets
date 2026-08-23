@@ -18,8 +18,16 @@ export class BulletWidget extends WidgetType {
 			`--bb-bullet-indentation: ${this.settings.bulletIndentation};`,
 			`--bb-bullet-structure: ${this.settings.bulletStructure};`,
 			`--bb-bullet-text-gap: ${this.settings.bulletTextGap};`,
+			this.type.isOrdered ? "--bb-ordered-list: 1;" : "",
+			this.type.isParent ? "--bb-parent-bullet: 1;" : "",
 		].join(" ");
-		container.classList.add("bb-bullet");
+		container.classList.add(
+			"bb-bullet",
+			this.type.isOrdered
+				? "bb-bullet--ordered"
+				: "bb-bullet--unordered",
+			this.type.isParent ? "bb-bullet--parent" : "bb-bullet--leaf",
+		);
 
 		const symbol = container.createEl("span", {
 			cls: "bb-bullet-symbol",

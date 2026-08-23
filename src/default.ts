@@ -12,6 +12,16 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	],
 	rules: [
 		{
+			name: "Colon Parents Number Children",
+			matchMode: "full",
+			styles: [
+				{
+					pattern: ".*:",
+					css: "--bb-number-children: 1;",
+				},
+			],
+		},
+		{
 			name: "Note Labels",
 			matchMode: "full",
 			styles: [

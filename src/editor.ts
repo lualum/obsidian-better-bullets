@@ -7,6 +7,7 @@ import {
 	ViewUpdate,
 } from "@codemirror/view";
 import type BetterBulletsPlugin from "./main";
+import type { FormattingRule } from "./settings";
 import { BulletWidget } from "./widget";
 
 export const reloadEffect = StateEffect.define<boolean>();
@@ -14,6 +15,8 @@ export const reloadEffect = StateEffect.define<boolean>();
 export interface BulletType {
 	symbol: string;
 	style: string;
+	isOrdered: boolean;
+	isParent: boolean;
 }
 
 interface PendingDecoration {
@@ -33,9 +36,12 @@ interface LineInfo {
 	indent: number;
 	spaces: number;
 	bullet: string;
+	marker: string;
 	text: string;
 	index: number;
 	bulletIdx: number;
+	textIdx: number;
+	isOrdered: boolean;
 }
 
 function getIndentLevel(lineText: string, tabSize: number): number {
@@ -50,6 +56,68 @@ function combineCss(...cssBlocks: (string | undefined)[]): string {
 	const span = document.createElement("span");
 	span.style.cssText = cssBlocks.filter(Boolean).join("; ");
 	return span.style.cssText;
+}
+
+function hasCssFlag(css: string, property: string): boolean {
+	const span = document.createElement("span");
+	span.style.cssText = css;
+	return span.style.getPropertyValue(property).trim() !== "";
+}
+
+function getFullRuleMatch(
+	rule: FormattingRule,
+	text: string,
+): RegExpMatchArray | null {
+	let regex: RegExp;
+	try {
+		regex = new RegExp(
+			`^(${rule.styles.map((s) => s?.pattern).join(")(")})$`,
+		);
+	} catch {
+		return null;
+	}
+
+	return text.match(regex);
+}
+
+function doesRuleSetCssFlag(
+	rule: FormattingRule,
+	text: string,
+	property: string,
+): boolean {
+	if (rule.matchMode === "full") {
+		const groups = getFullRuleMatch(rule, text);
+		if (!groups) return false;
+
+		for (let i = 0; i < rule.styles.length; i++) {
+			const ruleSettings = rule.styles[i];
+			const groupText = groups[i + 1];
+			if (groupText === undefined) break;
+			if (ruleSettings && hasCssFlag(ruleSettings.css, property)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	for (const ruleSettings of rule.styles) {
+		if (!ruleSettings?.pattern) continue;
+		let compiledRegex: RegExp;
+		try {
+			compiledRegex = new RegExp(ruleSettings.pattern, "g");
+		} catch {
+			continue;
+		}
+		if (
+			compiledRegex.test(text) &&
+			hasCssFlag(ruleSettings.css, property)
+		) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 export function moveToSameIndent(view: EditorView, direction: 1 | -1): boolean {
@@ -125,19 +193,27 @@ class BetterBulletsViewPlugin {
 			const line = doc.line(lineIdx);
 			const raw = line.text;
 			const tabSize = view.state.tabSize;
-			const match = raw.match(/^(\t*)(\s*)([-*+])(\s)(.*)$/);
+			const match = raw.match(
+				/^(\t*)(\s*)((?:[-*+])|(?:\d{1,9}[.)]))(\s+)(.*)$/,
+			);
 
 			if (match) {
-				const [, indents, spaces, bullet, , text] = match;
+				const [, indents, spaces, marker, markerSpace, text] = match;
 				const totalSpaces = indents!.length * tabSize + spaces!.length;
+				const bulletIdx =
+					line.from + indents!.length + spaces!.length;
 
 				return {
 					indent: Math.floor(totalSpaces / tabSize),
 					spaces: totalSpaces % tabSize,
-					bullet: bullet!,
+					bullet: marker!,
+					marker: marker!,
 					text: text ?? "",
 					index: line.from,
-					bulletIdx: line.from + indents!.length + spaces!.length,
+					bulletIdx,
+					textIdx:
+						bulletIdx + marker!.length + markerSpace!.length,
+					isOrdered: /^\d{1,9}[.)]$/.test(marker!),
 				};
 			}
 
@@ -150,9 +226,12 @@ class BetterBulletsViewPlugin {
 				indent: indentMatch[1]!.length,
 				spaces: 0,
 				bullet: "",
+				marker: "",
 				text: indentMatch[2] ?? "",
 				index: line.from,
 				bulletIdx: -1,
+				textIdx: -1,
+				isOrdered: false,
 			};
 		};
 
@@ -161,11 +240,12 @@ class BetterBulletsViewPlugin {
 			isBullet: boolean,
 			level: number,
 			indentLevel: number,
+			orderedMarker?: string,
 		) => {
 			if (!isBullet) return;
 
 			const bulletIdx = info.bulletIdx;
-			const textIdx = bulletIdx + info.bullet.length + 1;
+			const textIdx = info.textIdx;
 			const text = info.text;
 
 			const hierarchyIndex =
@@ -180,7 +260,10 @@ class BetterBulletsViewPlugin {
 
 			if (!bulletSettings) return;
 
-			let symbol = bulletSettings.symbol;
+			const displayAsOrdered = info.isOrdered || orderedMarker !== undefined;
+			let symbol =
+				orderedMarker ??
+				(info.isOrdered ? info.marker : bulletSettings.symbol);
 			let bulletCss = bulletSettings.css;
 
 			const textStyleSpans: TextStyleSpan[] = [];
@@ -199,15 +282,7 @@ class BetterBulletsViewPlugin {
 			for (const rule of this.plugin.settings.rules) {
 				const matchMode = rule.matchMode;
 				if (matchMode === "full") {
-					let regex: RegExp;
-					try {
-						regex = new RegExp(
-							`^(${rule.styles.map((s) => s?.pattern).join(")(")})$`,
-						);
-					} catch {
-						continue;
-					}
-					const groups = text.match(regex);
+					const groups = getFullRuleMatch(rule, text);
 					if (!groups) continue;
 					if (rule.bullet) {
 						symbol = rule.bullet;
@@ -304,6 +379,8 @@ class BetterBulletsViewPlugin {
 				widget: new BulletWidget(this.plugin.settings, {
 					symbol: symbol,
 					style: bulletCss,
+					isOrdered: displayAsOrdered,
+					isParent: level > 0,
 				}),
 			});
 			pendingDecorations.push({
@@ -320,6 +397,19 @@ class BetterBulletsViewPlugin {
 		): { end: number; level: number } => {
 			let level = 0;
 			let currLine = lineNum + 1;
+			const parentInfo = lineNum > 0 ? getLineInfo(lineNum) : null;
+			const numberImmediateChildren =
+				asBullet &&
+				parentInfo !== null &&
+				this.plugin.settings.rules.some(
+					(rule) =>
+						doesRuleSetCssFlag(
+							rule,
+							parentInfo.text,
+							"--bb-number-children",
+						),
+				);
+			let childNumber = 1;
 
 			while (currLine <= doc.lines) {
 				const info = getLineInfo(currLine);
@@ -336,10 +426,20 @@ class BetterBulletsViewPlugin {
 					asBullet &&
 					info.bullet !== "" &&
 					indent + 1 === info.indent;
+				const orderedMarker =
+					isBullet && numberImmediateChildren
+						? `${childNumber++}.`
+						: undefined;
 
 				const fold = analyzeFold(currLine, isBullet, info.indent);
 
-				applyModifiers(info, isBullet, fold.level, info.indent);
+				applyModifiers(
+					info,
+					isBullet,
+					fold.level,
+					info.indent,
+					orderedMarker,
+				);
 
 				currLine = fold.end;
 				level = Math.max(level, fold.level + 1);
