@@ -170,8 +170,11 @@ class BetterBulletsViewPlugin {
 	}
 
 	update(update: ViewUpdate) {
-		// Disable rendering in Source mode (Live Preview only).
-		if (!update.state.field(editorLivePreviewField)) {
+		// Disable rendering in Source mode when the setting is enabled.
+		if (
+			this.plugin.settings.disableInSourceMode &&
+			!update.state.field(editorLivePreviewField)
+		) {
 			this.decorations = Decoration.none;
 			return;
 		}
@@ -189,8 +192,11 @@ class BetterBulletsViewPlugin {
 	}
 
 	format(view: EditorView): DecorationSet {
-		// Disable rendering in Source mode (Live Preview only).
-		if (!view.state.field(editorLivePreviewField)) {
+		// Disable rendering in Source mode when the setting is enabled.
+		if (
+			this.plugin.settings.disableInSourceMode &&
+			!view.state.field(editorLivePreviewField)
+		) {
 			return Decoration.none;
 		}
 
