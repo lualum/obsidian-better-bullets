@@ -5,7 +5,7 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 	bulletIndentation: "1ch",
 	bulletStructure: "2ch",
 	bulletTextGap: "1ch",
-	disableInSourceMode: false,
+	enableInSourceMode: true,
 	hierarchy: [
 		{ symbol: "-", css: "" },
 		{ symbol: "→", css: "font-size: 1.2em; \nfont-weight: bold;" },
