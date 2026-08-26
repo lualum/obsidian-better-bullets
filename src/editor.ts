@@ -6,6 +6,7 @@ import {
 	ViewPlugin,
 	ViewUpdate,
 } from "@codemirror/view";
+import { editorLivePreviewField } from "obsidian";
 import type BetterBulletsPlugin from "./main";
 import type { FormattingRule } from "./settings";
 import { BulletWidget } from "./widget";
@@ -169,6 +170,12 @@ class BetterBulletsViewPlugin {
 	}
 
 	update(update: ViewUpdate) {
+		// Disable rendering in Source mode (Live Preview only).
+		if (!update.state.field(editorLivePreviewField)) {
+			this.decorations = Decoration.none;
+			return;
+		}
+
 		if (
 			update.docChanged ||
 			update.viewportChanged ||
@@ -182,6 +189,11 @@ class BetterBulletsViewPlugin {
 	}
 
 	format(view: EditorView): DecorationSet {
+		// Disable rendering in Source mode (Live Preview only).
+		if (!view.state.field(editorLivePreviewField)) {
+			return Decoration.none;
+		}
+
 		const doc = view.state.doc;
 		const builder = new RangeSetBuilder<Decoration>();
 		const pendingDecorations: PendingDecoration[] = [];
