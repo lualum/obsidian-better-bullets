@@ -41,6 +41,7 @@ export interface BetterBulletsSettings {
 	bulletIndentation: string;
 	bulletStructure: string;
 	bulletTextGap: string;
+	enableInSourceMode: boolean;
 	hierarchy: BulletType[];
 	rules: FormattingRule[];
 }
@@ -132,11 +133,17 @@ export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 						render: (setting) =>
 							this.renderBulletStructureSetting(setting),
 					},
-					{
+{
 						name: "Bullet text gap",
 						desc: "Target width between the bullet-only container and text.",
 						render: (setting) =>
 							this.renderBulletTextGapSetting(setting),
+					},
+					{
+						name: "Enable in source mode",
+						desc: "Enable bullet rendering when the editor is in source mode.",
+						render: (setting) =>
+							this.renderEnableInSourceModeSetting(setting),
 					},
 				],
 			},
@@ -373,6 +380,22 @@ export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 				);
 				text.inputEl.placeholder = DEFAULT_SETTINGS.bulletTextGap;
 				text.inputEl.classList.add("bb-setting-short");
+			});
+	}
+
+	private renderEnableInSourceModeSetting(setting: Setting) {
+		setting
+			.setName("Enable in source mode")
+			.setDesc(
+				"Enable bullet rendering when the editor is in source mode.",
+			)
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.enableInSourceMode)
+					.onChange((value) => {
+						this.plugin.settings.enableInSourceMode = value;
+						void this.triggerRefresh();
+					});
 			});
 	}
 

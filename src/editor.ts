@@ -6,6 +6,7 @@ import {
 	ViewPlugin,
 	ViewUpdate,
 } from "@codemirror/view";
+import { editorLivePreviewField } from "obsidian";
 import type BetterBulletsPlugin from "./main";
 import type { FormattingRule } from "./settings";
 import { BulletWidget } from "./widget";
@@ -170,6 +171,14 @@ class BetterBulletsViewPlugin {
 
 	update(update: ViewUpdate) {
 		if (
+			!this.plugin.settings.enableInSourceMode &&
+			!update.state.field(editorLivePreviewField)
+		) {
+			this.decorations = Decoration.none;
+			return;
+		}
+
+		if (
 			update.docChanged ||
 			update.viewportChanged ||
 			update.selectionSet ||
@@ -182,6 +191,13 @@ class BetterBulletsViewPlugin {
 	}
 
 	format(view: EditorView): DecorationSet {
+		if (
+			!this.plugin.settings.enableInSourceMode &&
+			!view.state.field(editorLivePreviewField)
+		) {
+			return Decoration.none;
+		}
+
 		const doc = view.state.doc;
 		const builder = new RangeSetBuilder<Decoration>();
 		const pendingDecorations: PendingDecoration[] = [];
