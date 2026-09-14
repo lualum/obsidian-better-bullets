@@ -5,6 +5,11 @@ import type { PluginSettingTab } from "obsidian";
 import { BetterBulletsSettings, BetterBulletsSettingTab } from "./settings";
 import { DEFAULT_SETTINGS } from "./default";
 
+const OLD_IMPORTANT_TEXT_CSS =
+	"font-weight: bold; \ncolor: var(--text-sub-accent);";
+const OLD_IMPORTANT_CONTROL_CSS =
+	"font-weight: bold; \ncolor: color-mix(in srgb, var(--text-sub-accent) 50%, transparent);\n--bb-control: 1;";
+
 export default class BetterBulletsPlugin extends Plugin {
 	settings: BetterBulletsSettings = DEFAULT_SETTINGS;
 
@@ -43,10 +48,39 @@ export default class BetterBulletsPlugin extends Plugin {
 			DEFAULT_SETTINGS,
 			(await this.loadData()) as BetterBulletsSettings,
 		);
+		if (this.migrateImportantLabelAccent()) {
+			await this.saveSettings();
+		}
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	private migrateImportantLabelAccent(): boolean {
+		const defaultRule = DEFAULT_SETTINGS.rules.find(
+			(rule) => rule.name === "Important Label",
+		);
+		const savedRule = this.settings.rules.find(
+			(rule) => rule.name === "Important Label",
+		);
+		if (!defaultRule || !savedRule) return false;
+
+		let changed = false;
+		if (savedRule.styles[0]?.css === OLD_IMPORTANT_TEXT_CSS) {
+			savedRule.styles[0].css = defaultRule.styles[0]?.css ?? "";
+			changed = true;
+		}
+		if (savedRule.styles[1]?.css === OLD_IMPORTANT_CONTROL_CSS) {
+			savedRule.styles[1].css = defaultRule.styles[1]?.css ?? "";
+			changed = true;
+		}
+		if (savedRule.bulletCss === OLD_IMPORTANT_TEXT_CSS) {
+			savedRule.bulletCss = defaultRule.bulletCss;
+			changed = true;
+		}
+
+		return changed;
 	}
 
 	refreshEditors() {

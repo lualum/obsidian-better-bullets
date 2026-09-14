@@ -70,14 +70,14 @@ export const DEFAULT_SETTINGS: BetterBulletsSettings = {
 			styles: [
 				{
 					pattern: ".*",
-					css: "font-weight: bold; \ncolor: var(--text-sub-accent);",
+					css: "font-weight: bold; \ncolor: var(--text-accent);",
 				},
 				{
 					pattern: "!",
-					css: "font-weight: bold; \ncolor: color-mix(in srgb, var(--text-sub-accent) 50%, transparent);\n--bb-control: 1;",
+					css: "font-weight: bold; \ncolor: color-mix(in srgb, var(--text-accent) 50%, transparent);\n--bb-control: 1;",
 				},
 			],
-			bulletCss: "font-weight: bold; \ncolor: var(--text-sub-accent);",
+			bulletCss: "font-weight: bold; \ncolor: var(--text-accent);",
 		},
 		{
 			name: "Parenthetical Text",

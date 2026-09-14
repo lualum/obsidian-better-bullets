@@ -5,6 +5,13 @@ import { DEFAULT_SETTINGS } from "./default";
 interface DeclarativeSettingTabBase {
 	app: App;
 	containerEl: HTMLElement;
+	setting?: {
+		navigateToSearchResult?: (result: {
+			tab: DeclarativeSettingTabBase;
+			pagePath: string[];
+		}) => void;
+		openTab?: (tab: DeclarativeSettingTabBase) => void;
+	};
 	hide(): void;
 	update?: () => void;
 }
@@ -234,14 +241,14 @@ export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 			: { symbol: "*", css: "" };
 		this.plugin.settings.hierarchy.push(newLevel);
 		void this.triggerRefresh();
-		this.refreshSettingsTab();
+		this.openSettingsPage(`Level ${index + 1}`);
 	}
 
 	private deleteLevel(index: number) {
 		if (this.plugin.settings.hierarchy.length <= 1) return;
 		this.plugin.settings.hierarchy.splice(index, 1);
 		void this.triggerRefresh();
-		this.refreshSettingsTab();
+		this.returnToSettingsHome();
 	}
 
 	createLevelSetting(container: HTMLElement, index: number) {
@@ -530,17 +537,7 @@ export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 						const currentIndex =
 							this.plugin.settings.rules.indexOf(rule);
 						if (currentIndex === -1) return;
-						this.plugin.settings.rules.splice(currentIndex, 1);
-
-						const updated = new Set<number>();
-						for (const i of this.openRuleIndices) {
-							if (i < currentIndex) updated.add(i);
-							else if (i > currentIndex) updated.add(i - 1);
-						}
-						this.openRuleIndices = updated;
-
-						void this.triggerRefresh();
-						this.refreshSettingsTab();
+						this.deleteRule(rule, currentIndex);
 					}),
 			);
 
@@ -828,18 +825,32 @@ export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 		this.openRuleIndices = updated;
 
 		void this.triggerRefresh();
-		this.refreshSettingsTab();
+		this.returnToSettingsHome();
 	}
 
 	addNewRule() {
+		const name = this.getUniqueRuleName();
 		const newRule: FormattingRule = {
-			name: "New Rule",
+			name,
 			matchMode: "full",
 			styles: [{ pattern: "", css: "" }],
 		};
+		const newRuleIndex = this.plugin.settings.rules.length;
 		this.plugin.settings.rules.push(newRule);
+		this.openRuleIndices.add(newRuleIndex);
 		void this.triggerRefresh();
-		this.refreshSettingsTab();
+		this.openSettingsPage(name);
+	}
+
+	private getUniqueRuleName(): string {
+		const names = new Set(
+			this.plugin.settings.rules.map((rule) => rule.name),
+		);
+		if (!names.has("New Rule")) return "New Rule";
+
+		let suffix = 2;
+		while (names.has(`New Rule ${suffix}`)) suffix++;
+		return `New Rule ${suffix}`;
 	}
 
 	async triggerRefresh() {
@@ -855,6 +866,19 @@ export class BetterBulletsSettingTab extends DeclarativePluginSettingTab {
 		if (tab.update) {
 			tab.update();
 		}
+	}
+
+	private returnToSettingsHome() {
+		this.refreshSettingsTab();
+		this.setting?.openTab?.(this);
+	}
+
+	private openSettingsPage(pageName: string) {
+		this.refreshSettingsTab();
+		this.setting?.navigateToSearchResult?.({
+			tab: this,
+			pagePath: [pageName],
+		});
 	}
 }
 

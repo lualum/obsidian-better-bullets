@@ -8,6 +8,7 @@ import {
 } from "@codemirror/view";
 import { editorLivePreviewField } from "obsidian";
 import type BetterBulletsPlugin from "./main";
+import type { BetterBulletsSettings } from "./settings";
 import type { FormattingRule } from "./settings";
 import { BulletWidget } from "./widget";
 
@@ -31,6 +32,12 @@ interface TextStyleSpan {
 	to: number;
 	css: string;
 	order: number;
+}
+
+interface TextStyleSegment {
+	from: number;
+	to: number;
+	css: string;
 }
 
 interface LineInfo {
@@ -119,6 +126,142 @@ function doesRuleSetCssFlag(
 	}
 
 	return false;
+}
+
+function resolveBulletStyle(
+	settings: BetterBulletsSettings,
+	text: string,
+	marker: string,
+	isOrdered: boolean,
+	level: number,
+	indentLevel: number,
+	orderedMarker?: string,
+): {
+	symbol: string;
+	bulletCss: string;
+	displayAsOrdered: boolean;
+	textSegments: TextStyleSegment[];
+} | null {
+	const hierarchyIndex =
+		settings.levelType === "indent" ? indentLevel : level;
+	const bulletSettings =
+		settings.hierarchy[hierarchyIndex] ??
+		settings.hierarchy[settings.hierarchy.length - 1];
+
+	if (!bulletSettings) return null;
+
+	const displayAsOrdered = isOrdered || orderedMarker !== undefined;
+	let symbol =
+		orderedMarker ?? (isOrdered ? marker : bulletSettings.symbol);
+	let bulletCss = bulletSettings.css;
+
+	const textStyleSpans: TextStyleSpan[] = [];
+	let styleOrder = 0;
+
+	const addTextStyleSpan = (from: number, to: number, css: string) => {
+		if (!css || from >= to) return;
+		textStyleSpans.push({
+			from,
+			to,
+			css,
+			order: styleOrder++,
+		});
+	};
+
+	for (const rule of settings.rules) {
+		const matchMode = rule.matchMode;
+		if (matchMode === "full") {
+			const groups = getFullRuleMatch(rule, text);
+			if (!groups) continue;
+			if (rule.bullet) {
+				symbol = rule.bullet;
+			}
+			if (rule.bulletCss) {
+				bulletCss = combineCss(bulletSettings.css, rule.bulletCss);
+			}
+			let groupIdx = 0;
+			for (let i = 0; i < rule.styles.length; i++) {
+				const ruleSettings = rule.styles[i];
+				const groupText = groups[i + 1];
+				if (groupText === undefined) break;
+				if (!ruleSettings) {
+					groupIdx += groupText.length;
+					continue;
+				}
+				addTextStyleSpan(
+					groupIdx,
+					groupIdx + groupText.length,
+					ruleSettings.css,
+				);
+				groupIdx += groupText.length;
+			}
+		} else {
+			let anyMatched = false;
+			for (const ruleSettings of rule.styles) {
+				if (!ruleSettings?.pattern) continue;
+				let compiledRegex: RegExp;
+				try {
+					compiledRegex = new RegExp(ruleSettings.pattern, "g");
+				} catch {
+					continue;
+				}
+				let match: RegExpExecArray | null;
+				while ((match = compiledRegex.exec(text)) !== null) {
+					anyMatched = true;
+					addTextStyleSpan(
+						match.index,
+						match.index + match[0].length,
+						ruleSettings.css,
+					);
+					if (match[0].length === 0) {
+						compiledRegex.lastIndex++;
+					}
+				}
+			}
+			if (anyMatched) {
+				if (rule.bullet) {
+					symbol = rule.bullet;
+				}
+				if (rule.bulletCss) {
+					bulletCss = combineCss(bulletSettings.css, rule.bulletCss);
+				}
+			}
+		}
+	}
+
+	const lineStart = 0;
+	const lineEnd = text.length;
+	const boundaries = new Set<number>([lineStart, lineEnd]);
+	for (const span of textStyleSpans) {
+		boundaries.add(Math.max(lineStart, span.from));
+		boundaries.add(Math.min(lineEnd, span.to));
+	}
+	const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+	const textSegments: TextStyleSegment[] = [];
+
+	for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+		const from = sortedBoundaries[i]!;
+		const to = sortedBoundaries[i + 1]!;
+		if (from >= to) continue;
+
+		const matchingSpans = textStyleSpans
+			.filter((span) => span.from < to && span.to > from)
+			.sort((a, b) => a.order - b.order);
+		const css = combineCss(
+			bulletSettings.css,
+			...matchingSpans.map((span) => span.css),
+		);
+		if (css) {
+			textSegments.push({ from, to, css });
+		}
+	}
+
+	return {
+		symbol,
+		bulletCss,
+		displayAsOrdered,
+		textSegments,
+	};
 }
 
 export function moveToSameIndent(view: EditorView, direction: 1 | -1): boolean {
@@ -263,139 +406,34 @@ class BetterBulletsViewPlugin {
 			const bulletIdx = info.bulletIdx;
 			const textIdx = info.textIdx;
 			const text = info.text;
+			const resolved = resolveBulletStyle(
+				this.plugin.settings,
+				text,
+				info.marker,
+				info.isOrdered,
+				level,
+				indentLevel,
+				orderedMarker,
+			);
+			if (!resolved) return;
 
-			const hierarchyIndex =
-				this.plugin.settings.levelType === "indent"
-					? indentLevel
-					: level;
-			const bulletSettings =
-				this.plugin.settings.hierarchy[hierarchyIndex] ??
-				this.plugin.settings.hierarchy[
-					this.plugin.settings.hierarchy.length - 1
-				];
-
-			if (!bulletSettings) return;
-
-			const displayAsOrdered = info.isOrdered || orderedMarker !== undefined;
-			let symbol =
-				orderedMarker ??
-				(info.isOrdered ? info.marker : bulletSettings.symbol);
-			let bulletCss = bulletSettings.css;
-
-			const textStyleSpans: TextStyleSpan[] = [];
-			let styleOrder = 0;
-
-			const addTextStyleSpan = (from: number, to: number, css: string) => {
-				if (!css || from >= to) return;
-				textStyleSpans.push({
+			for (const segment of resolved.textSegments) {
+				const from = textIdx + segment.from;
+				const to = textIdx + segment.to;
+				pendingDecorations.push({
 					from,
 					to,
-					css,
-					order: styleOrder++,
+					decoration: Decoration.mark({
+						attributes: { style: segment.css },
+					}),
 				});
-			};
-
-			for (const rule of this.plugin.settings.rules) {
-				const matchMode = rule.matchMode;
-				if (matchMode === "full") {
-					const groups = getFullRuleMatch(rule, text);
-					if (!groups) continue;
-					if (rule.bullet) {
-						symbol = rule.bullet;
-					}
-					if (rule.bulletCss) {
-						bulletCss = combineCss(bulletSettings.css, rule.bulletCss);
-					}
-					let groupIdx = textIdx;
-					for (let i = 0; i < rule.styles.length; i++) {
-						const ruleSettings = rule.styles[i];
-						const groupText = groups[i + 1];
-						if (groupText === undefined) break;
-						if (!ruleSettings) {
-							groupIdx += groupText.length;
-							continue;
-						}
-						addTextStyleSpan(
-							groupIdx,
-							groupIdx + groupText.length,
-							ruleSettings.css,
-						);
-						groupIdx += groupText.length;
-					}
-				} else {
-					let anyMatched = false;
-					for (const ruleSettings of rule.styles) {
-						if (!ruleSettings?.pattern) continue;
-						let compiledRegex: RegExp;
-						try {
-							compiledRegex = new RegExp(
-								ruleSettings.pattern,
-								"g",
-							);
-						} catch {
-							continue;
-						}
-						let match: RegExpExecArray | null;
-						while ((match = compiledRegex.exec(text)) !== null) {
-							anyMatched = true;
-							addTextStyleSpan(
-								textIdx + match.index,
-								textIdx + match.index + match[0].length,
-								ruleSettings.css,
-							);
-							if (match[0].length === 0) {
-								compiledRegex.lastIndex++;
-							}
-						}
-					}
-					if (anyMatched) {
-						if (rule.bullet) {
-							symbol = rule.bullet;
-						}
-						if (rule.bulletCss) {
-							bulletCss = combineCss(bulletSettings.css, rule.bulletCss);
-						}
-					}
-				}
-			}
-
-			const lineStart = textIdx;
-			const lineEnd = textIdx + text.length;
-			const boundaries = new Set<number>([lineStart, lineEnd]);
-			for (const span of textStyleSpans) {
-				boundaries.add(Math.max(lineStart, span.from));
-				boundaries.add(Math.min(lineEnd, span.to));
-			}
-			const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
-
-			for (let i = 0; i < sortedBoundaries.length - 1; i++) {
-				const from = sortedBoundaries[i]!;
-				const to = sortedBoundaries[i + 1]!;
-				if (from >= to) continue;
-
-				const matchingSpans = textStyleSpans
-					.filter((span) => span.from < to && span.to > from)
-					.sort((a, b) => a.order - b.order);
-				const css = combineCss(
-					bulletSettings.css,
-					...matchingSpans.map((span) => span.css),
-				);
-				if (css) {
-					pendingDecorations.push({
-						from,
-						to,
-						decoration: Decoration.mark({
-							attributes: { style: css },
-						}),
-					});
-				}
 			}
 
 			const bulletDecoration = Decoration.replace({
 				widget: new BulletWidget(this.plugin.settings, {
-					symbol: symbol,
-					style: bulletCss,
-					isOrdered: displayAsOrdered,
+					symbol: resolved.symbol,
+					style: resolved.bulletCss,
+					isOrdered: resolved.displayAsOrdered,
 					isParent: level > 0,
 				}),
 			});
